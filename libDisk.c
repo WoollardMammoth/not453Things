@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "libTinyFS.h"
 #include "tinyFS.h"
+#include "libDisk.h"
 
 int openDisk(char *filename, int nBytes) {
    return 0;
@@ -12,7 +13,7 @@ int openDisk(char *filename, int nBytes) {
 int readBlock(int disk, int bNum, void *block) {
    unsigned byteOffset;
 
-   char *wasteThisData
+   char *wasteThisData;
    
    byteOffset = bNum*BLOCKSIZE;
 
@@ -36,5 +37,24 @@ int readBlock(int disk, int bNum, void *block) {
 }
 
 int writeBlock(int disk, int bNum, void *block) {
+   
+   if (lseek(disk, bNum*BLOCKSIZE, 0) == -1) {
+      /*lseek failed*/
+      if (errno == EBADF) {
+         /*ERROR -- file descriptor is not open*/
+         return -1;
+      }
+      else {
+         /*ERROR -- seek failed*/
+         return -2;
+      }
+   }
+  
+   if (write(disk, block, BLOCKSIZE) != BLOCKSIZE) {
+      /*ERROR -- Could not write entire block*/
+      return -3;
+   }
+
    return 0;
 }
+
