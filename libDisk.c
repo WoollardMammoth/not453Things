@@ -33,11 +33,11 @@ int openDisk(char *filename, int nBytes) {
    else if(nBytes == 0){
       return getFD(filename);
    }
-   else if(0 > (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 644)){
+   else if(0 > (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 644))) {
       /* Error - problems with opening the file */
       return -1;
    }
-   
+      
    
    
    newDisk.fd = fd;
