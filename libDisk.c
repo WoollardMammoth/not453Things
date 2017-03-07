@@ -3,11 +3,53 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
+#include <time.h>
 #include "tinyFS.h"
 #include "libDisk.h"
 
+disk diskArray[100];
+int totalDisks;
+
+int getFD(char *filename){
+   int i;
+   for(i = 0; i < totalDisks; i++){
+      if(strcmp(filename, diskArray[i].name) == 0){
+         return diskArray[i].fd;
+      }
+   }
+   return -1;
+}
+
 int openDisk(char *filename, int nBytes) {
-   return 0;
+   int fd;
+   disk newDisk;
+   time_t currentTime;
+   
+   if(nBytes < BLOCKSIZE){
+      /* Failure REturned */
+      return -1;
+   }
+   else if(nBytes == 0){
+      return getFD(filename);
+   }
+   else if(0 > (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 644)){
+      /* Error - problems with opening the file */
+      return -1;
+   }
+   
+   
+   
+   newDisk.fd = fd;
+   newDisk.name = filename;
+   newDisk.nBytes = nBytes - (nBytes % BLOCKSIZE);
+   //Should check to make sure that this is correct
+   newDisk.data = malloc(BLOCKSIZE * nBytes; 
+   
+   currentTime = time(NULL);
+   newDisk.timeStamp = ctime(&currentTime);
+   
+   diskArray[totalDisks++] = newDisk;
 }
 
 int readBlock(int disk, int bNum, void *block) {
