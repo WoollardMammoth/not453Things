@@ -11,11 +11,8 @@ int openDisk(char *filename, int nBytes) {
 
 int readBlock(int disk, int bNum, void *block) {
    unsigned byteOffset;
-
-   char *wasteThisData
-   
    byteOffset = bNum*BLOCKSIZE;
-
+   /*did this work?*/
    /*skip disk to where we want*/
    if (-1 == lseek(disk, byteOffset, 0)) {
       /*lseek failed*/
