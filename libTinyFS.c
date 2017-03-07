@@ -1,4 +1,5 @@
 #include "tinyFS.h"
+#include "libDisk.h"
 
 /*
  * Makes a blank TinyFS file system of size nBytes on the unix file specified
@@ -9,5 +10,13 @@
  * specified success/error code. 
  */
 int tfs_mkfs(char *filename, int nBytes){
-
+   if (openDisk(filename, nBytes) != 0)
+   {
+      /*ERROR THINGS*/
+   } else {
+      /*Initialze all data to 0x00*/
+      /*set magic numbers -- no idea what these are*/
+      /*initialize supernode, inodes, etc.*/
+      /*return exit code*/
+   }
 }
