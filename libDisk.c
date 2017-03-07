@@ -12,12 +12,7 @@ int openDisk(char *filename, int nBytes) {
 
 int readBlock(int disk, int bNum, void *block) {
    unsigned byteOffset;
-<<<<<<< HEAD
-
-   char *wasteThisData;
    
-=======
->>>>>>> 2e505a485a9485f142802bf7d33cd2026a0ba89a
    byteOffset = bNum*BLOCKSIZE;
    
    /*skip disk to where we want*/
