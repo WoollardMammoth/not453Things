@@ -32,9 +32,9 @@ int openDisk(char *filename, int nBytes) {
    newDisk.fd = fd;
    newDisk.name = filename;
    /*nBytes is a multiple of 256, meaning it always ends on a block boundary*/
-   newDisk.nBytes = nBytes - (nBytes % BLOCKSIZE);
+   newDisk.numBlocks = (nBytes - (nBytes % BLOCKSIZE)) / BLOCKSIZE;
    /*Should check to make sure that this is correct*/
-   newDisk.data = malloc(newDisk.nBytes); 
+   newDisk.data = malloc(newDisk.numBlocks * BLOCKSIZE); 
    
    currentTime = time(NULL);
    newDisk.timeStamp = ctime(&currentTime);
