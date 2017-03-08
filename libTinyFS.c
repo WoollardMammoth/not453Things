@@ -11,7 +11,7 @@
  */
 int tfs_mkfs(char *filename, int nBytes) {
    int i, fd, numBlocks;
-   char *initilizer;
+   char *initializer;
    char setter;
    if ((fd = openDisk(filename, nBytes)) != 0)
    {
@@ -19,20 +19,29 @@ int tfs_mkfs(char *filename, int nBytes) {
    } else {
       /*Initialze all data to 0x00*/
       numBlocks = (nBytes - (nBytes % BLOCKSIZE))/BLOCKSIZE;
-      initilizer = calloc(BLOCKSIZE, sizeof(char));/*set a blank block*/
+      initializer = calloc(BLOCKSIZE, sizeof(char));/*set a blank block*/
       for (i = 0; i < numBlocks; i++) {
-         writeBlock(fd, i, initilizer);/*write blank data to every block*/
+         writeBlock(fd, i, initializer);/*write blank data to every block*/
       }
+      free(initializer);
 
-      /*set magic numbers -- 0x44 as the second byte of every block*/
-      setter = 0x44;
+      initializer = malloc(2*sizeof(char));
+      initializer[0] = 0x04;/*free block code*/
+      initializer[1] = 0x44;/*magic number*/
       for (i = 0; i < numBlocks; i++)
       {
-         lseek(fd, 1 + BLOCKSIZE*i, 0);/*go 1 byte passed start of next block*/
-         write(fd, &setter, sizeof(char));/*put 0x44 at the 2nd byte*/
+         lseek(fd, BLOCKSIZE*i, 0);/*go to start of next block*/
+         write(fd, initializer, 2*sizeof(char));/*write first 2 bytes*/
       } 
       
       /*initialize supernode, inodes, etc.*/
+      lseek(fd, 0, 0);/*seek to start of superblock*/
+      setter = 0x01; /*set setter as superblock code*/
+      write(fd, &i, sizeof(char));/*write superblock code as 1 byte*/
+      /*magic number 0x44 should already be in 2nd byte*/
+      /*add the block number of the root inode*/
+      /*a pointer to a list of free blocks (or another way to manage those)*/
+      
       /*return exit code*/
    }
    return 0;
