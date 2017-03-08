@@ -17,14 +17,12 @@ int openDisk(char *filename, int nBytes) {
    disk newDisk;
    time_t currentTime;
 
-   if(nBytes < BLOCKSIZE || nBytes < 0){
+   if(nBytes == 0){
+      return getFD(filename);
+   } else if(nBytes < BLOCKSIZE || nBytes < 0) {
       /* Failure Returned */
       return -1;
-   }
-   else if(nBytes == 0){
-      return getFD(filename);
-   }
-   else if(-1 == (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0660))) {
+   } else if(-1 == (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0660))) {
       /* Error - problems with opening the file */
       return -1;
    }
@@ -32,9 +30,9 @@ int openDisk(char *filename, int nBytes) {
    newDisk.fd = fd;
    newDisk.name = filename;
    /*nBytes is a multiple of 256, meaning it always ends on a block boundary*/
-   newDisk.numBlocks = (nBytes - (nBytes % BLOCKSIZE)) / BLOCKSIZE;
+   newDisk.nBlocks = (nBytes - (nBytes % BLOCKSIZE)) / BLOCKSIZE;
    /*Should check to make sure that this is correct*/
-   newDisk.data = malloc(newDisk.numBlocks * BLOCKSIZE); 
+   newDisk.data = malloc(newDisk.nBlocks * BLOCKSIZE); 
    
    currentTime = time(NULL);
    newDisk.timeStamp = ctime(&currentTime);
