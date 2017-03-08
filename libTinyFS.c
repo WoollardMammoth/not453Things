@@ -18,7 +18,7 @@ int tfs_mkfs(char *filename, int nBytes) {
       /*ERROR THINGS*/
    } else {
       /*Initialze all data to 0x00*/
-      numBlocks = (nBytes - (nBytes % BLOCKSIZE))/BLOCKSIZE;
+      numBlocks = nBytes/BLOCKSIZE;/*by the magic of integer division*/
       initializer = calloc(BLOCKSIZE, sizeof(char));/*set a blank block*/
       for (i = 0; i < numBlocks; i++) {
          writeBlock(fd, i, initializer);/*write blank data to every block*/
