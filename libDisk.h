@@ -4,7 +4,7 @@
 typedef struct {
     int fd;
     void *data;
-    int nBytes;
+    int nBlocks;
     char *timeStamp;
     char *name;
 } disk;
