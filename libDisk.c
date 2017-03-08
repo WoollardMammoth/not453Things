@@ -16,15 +16,15 @@ int openDisk(char *filename, int nBytes) {
    int fd;
    disk newDisk;
    time_t currentTime;
-   
-   if(nBytes < BLOCKSIZE){
+
+   if(nBytes < BLOCKSIZE || nBytes < 0){
       /* Failure Returned */
       return -1;
    }
    else if(nBytes == 0){
       return getFD(filename);
    }
-   else if(-1 == (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 644))) {
+   else if(-1 == (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0660))) {
       /* Error - problems with opening the file */
       return -1;
    }
