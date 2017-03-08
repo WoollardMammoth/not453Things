@@ -1,4 +1,4 @@
-TARGET   = TinyFsDemo
+TARGET   = tinyFsDemo
 CC       = gcc
 CCFLAGS  = -std=c89 -pedantic -Wall -Werror
 LDFLAGS  = -lm
