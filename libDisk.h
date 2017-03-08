@@ -9,9 +9,16 @@ typedef struct {
     char *name;
 } disk;
 
+/*-----------------MANDATORY METHODS-----------------*/
 int openDisk(char *filename, int nBytes);
 
 int readBlock(int disk, int bNum, void *block);
 
 int writeBlock(int disk, int bNum, void *block);
+/*---------------------------------------------------*/
+
+
+/*----------------SUPPORT METHODS--------------------*/
+int getFD(char *filename);
+/*---------------------------------------------------*/
 #endif

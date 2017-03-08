@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
@@ -11,45 +12,35 @@
 disk diskArray[100];
 int totalDisks;
 
-int getFD(char *filename){
-   int i;
-   for(i = 0; i < totalDisks; i++){
-      if(strcmp(filename, diskArray[i].name) == 0){
-         return diskArray[i].fd;
-      }
-   }
-   return -1;
-}
-
 int openDisk(char *filename, int nBytes) {
    int fd;
    disk newDisk;
    time_t currentTime;
    
    if(nBytes < BLOCKSIZE){
-      /* Failure REturned */
+      /* Failure Returned */
       return -1;
    }
    else if(nBytes == 0){
       return getFD(filename);
    }
-   else if(0 > (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 644))) {
+   else if(-1 == (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 644))) {
       /* Error - problems with opening the file */
       return -1;
    }
-      
-   
-   
+ 
    newDisk.fd = fd;
    newDisk.name = filename;
+   /*nBytes is a multiple of 256, meaning it always ends on a block boundary*/
    newDisk.nBytes = nBytes - (nBytes % BLOCKSIZE);
-   //Should check to make sure that this is correct
-   newDisk.data = malloc(BLOCKSIZE * nBytes; 
+   /*Should check to make sure that this is correct*/
+   newDisk.data = malloc(newDisk.nBytes); 
    
    currentTime = time(NULL);
    newDisk.timeStamp = ctime(&currentTime);
    
    diskArray[totalDisks++] = newDisk;
+   return fd;
 }
 
 int readBlock(int disk, int bNum, void *block) {
@@ -97,4 +88,15 @@ int writeBlock(int disk, int bNum, void *block) {
 
    return 0;
 }
+
+int getFD(char *filename){
+   int i;
+   for(i = 0; i < totalDisks; i++){
+      if(strcmp(filename, diskArray[i].name) == 0){
+         return diskArray[i].fd;
+      }
+   }
+   return -1;
+}
+
 
