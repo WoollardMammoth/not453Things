@@ -28,7 +28,8 @@ int openDisk(char *filename, int nBytes) {
    }
  
    newDisk.fd = fd;
-   newDisk.name = filename;
+   newDisk.name = malloc(sizeof(char) * (strlen(filename) + 1));
+   strcpy(newDisk.name, filename);
    /*nBytes is a multiple of 256, meaning it always ends on a block boundary*/
    newDisk.nBlocks = (nBytes - (nBytes % BLOCKSIZE)) / BLOCKSIZE;
    /*Should check to make sure that this is correct*/

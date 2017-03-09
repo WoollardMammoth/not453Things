@@ -35,22 +35,20 @@ int main()
         { 
             printf("] Open failed with (%i). Disk probably does not exist.\n",disks[index]);
             
-	    disks[index] = openDisk(diskName,BLOCKSIZE * NUM_BLOCKS); /* create the disk */
-	    if (disks[index] < 0)
-            {
-                printf("] openDisk() failed to create a disk. This should never happen. Exiting. \n");
-		exit(0); 
-	    }
+	         disks[index] = openDisk(diskName,BLOCKSIZE * NUM_BLOCKS); /* create the disk */
+	         if (disks[index] < 0) {
+               printf("] openDisk() failed to create a disk. This should never happen. Exiting. \n");
+		         exit(0); 
+	         }
           
             memset(buffer,'$',BLOCKSIZE);
             for (index2 = 0; index2 < NUM_TEST_BLOCKS; index2++)
             {
                 retValue = writeBlock(disks[index],testBlocks[index2],buffer);
-                if (retValue < 0)
-		{
-		    printf("] Failed to write to block %i of disk %s. Exiting (%i).\n",testBlocks[index2],diskName,retValue);
-		    exit(0);
-		}
+                if (retValue < 0) {
+		             printf("] Failed to write to block %i of disk %s. Exiting (%i).\n",testBlocks[index2],diskName,retValue);
+		             exit(0);
+		          }
                 printf("] Successfully wrote to block %i of disk %s.\n",testBlocks[index2],diskName);
             }
         }
