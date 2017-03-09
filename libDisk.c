@@ -17,8 +17,17 @@ int openDisk(char *filename, int nBytes) {
    disk newDisk;
    time_t currentTime;
 
-   if(nBytes == 0){
-      return getFD(filename);
+   if((nBytes == 0) && (access(filename, F_OK) != -1)){
+      if ((fd = getFD(filename)) == -1)
+      {
+         /*not in the table but it exists*/
+         /*get fd from open*/
+         /*make entry in table*/
+         /*return fd*/
+      } else {
+         /*in table and exists*/
+         return fd;
+      }
    } else if(nBytes < BLOCKSIZE || nBytes < 0) {
       /* Failure Returned */
       return -1;
