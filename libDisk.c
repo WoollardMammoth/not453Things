@@ -22,13 +22,27 @@ int openDisk(char *filename, int nBytes) {
       {
          /*not in the table but it exists*/
          /*get fd from open*/
+         fd = open(filename, O_RDWR, 0660);
          /*make entry in table*/
          /*return fd*/
+         newDisk.fd = fd;
+         newDisk.name = malloc(sizeof(char) * (strlen(filename) + 1));
+         strcpy(newDisk.name, filename);
+         /*nBytes is a multiple of 256, meaning it always ends on a block boundary*/
+         newDisk.nBlocks = (nBytes - (nBytes % BLOCKSIZE)) / BLOCKSIZE;
+         /*Should check to make sure that this is correct*/
+         newDisk.data = malloc(newDisk.nBlocks * BLOCKSIZE);
+
+         currentTime = time(NULL);
+         newDisk.timeStamp = ctime(&currentTime);
+
+         diskArray[totalDisks++] = newDisk;
+         return fd;
       } else {
          /*in table and exists*/
          return fd;
       }
-   } else if(nBytes < BLOCKSIZE || nBytes < 0) {
+   } else if(nBytes < BLOCKSIZE) {
       /* Failure Returned */
       return -1;
    } else if(-1 == (fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0660))) {
