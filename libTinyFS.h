@@ -1,6 +1,15 @@
 #ifndef LIBTINYFS_H
 #define LIBTINYFS_H
 
+typedef struct superBlock
+{
+   char blockType = 1;
+   char magicNum = 0x44;
+   char addressOfAnother;
+   char empty;
+   char data[BLOCKSIZE-4];
+} superBlock;
+
 int tfs_mkfs(char *filename, int nBytes);
 
 int tfs_mount(char *diskname);
