@@ -1,14 +1,20 @@
 #ifndef LIBTINYFS_H
 #define LIBTINYFS_H
 
-typedef struct superBlock
-{
+typedef struct superBlock {
    char blockType = 1;
    char magicNum = 0x44;
-   char addressOfAnother;
-   char empty;
-   char data[BLOCKSIZE-4];
+   char rootInodeBlockNum;
+   void *freeBlocks;
 } superBlock;
+
+typedef struct Inode {
+   char blockType = 2;
+   char magicNum = 0x44;
+   char name[9];
+   unsigned size;
+   void *timeStamp;/*change this type*/ 
+} Inode;
 
 int tfs_mkfs(char *filename, int nBytes);
 
