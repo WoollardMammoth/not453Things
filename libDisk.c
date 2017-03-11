@@ -30,8 +30,6 @@ int openDisk(char *filename, int nBytes) {
          strcpy(newDisk.name, filename);
          /*nBytes is a multiple of 256, meaning it always ends on a block boundary*/
          newDisk.nBlocks = (nBytes - (nBytes % BLOCKSIZE)) / BLOCKSIZE;
-         /*Should check to make sure that this is correct*/
-         newDisk.data = malloc(newDisk.nBlocks * BLOCKSIZE);
 
          currentTime = time(NULL);
          newDisk.timeStamp = ctime(&currentTime);
@@ -55,8 +53,6 @@ int openDisk(char *filename, int nBytes) {
    strcpy(newDisk.name, filename);
    /*nBytes is a multiple of 256, meaning it always ends on a block boundary*/
    newDisk.nBlocks = (nBytes - (nBytes % BLOCKSIZE)) / BLOCKSIZE;
-   /*Should check to make sure that this is correct*/
-   newDisk.data = malloc(newDisk.nBlocks * BLOCKSIZE); 
    
    currentTime = time(NULL);
    newDisk.timeStamp = ctime(&currentTime);
