@@ -35,7 +35,7 @@ int tfs_mkfs(char *filename, int nBytes) {
          lseek(fd, BLOCKSIZE*i, 0);/*go to start of next block*/
          write(fd, initializer, 2*sizeof(char));/*write first 2 bytes*/
       } 
-      
+      free(initializer); 
       /*initialize supernode, inodes, etc.*/
       lseek(fd, 0, 0);/*seek to start of superblock*/
       setter = 0x01; /*set setter as superblock code*/
