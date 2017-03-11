@@ -8,13 +8,28 @@ typedef struct superBlock {
    void *freeBlocks;
 } superBlock;
 
-typedef struct Inode {
+typedef struct inode {
    char blockType = 2;
    char magicNum = 0x44;
    char name[9];
    unsigned size;
    void *timeStamp;/*change this type*/ 
-} Inode;
+} inode;
+
+typedef struct fileExtent {
+   char blockType = 3;
+   char magicNum = 0x44;
+   char nextBlock = 0x00;
+   char data[BLOCKSIZE-3] = {0x00};
+   
+}
+
+typedef struct freeBlock {
+   char blockType = 4;
+   char magicNum = 0x44;
+   char nextFreeBlock;
+}
+
 
 int tfs_mkfs(char *filename, int nBytes);
 
