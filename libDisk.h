@@ -3,7 +3,6 @@
 
 typedef struct {
     int fd;
-    void *data;
     int nBlocks;
     char *timeStamp;
     char *name;
