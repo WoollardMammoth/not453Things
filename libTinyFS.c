@@ -3,6 +3,11 @@
 #include "tinyFS.h"
 #include "libDisk.h"
 
+#define DEBUG 0
+
+static fileDescriptor *mountedDisk = -1; // This is the FD of the disk that is mounted
+
+
 /*
  * Makes a blank TinyFS file system of size nBytes on the unix file specified
  * by ‘filename’. This function should use the emulated disk library to open
@@ -45,6 +50,11 @@ int tfs_mkfs(char *filename, int nBytes) {
       /*a pointer to a list of free blocks (or another way to manage those)*/
       
       /*return exit code*/
+
+   }
+   if(DEBUG){
+      printf("DEBUG: The file  system %s was opened with fd '%d' and size of '%d' blocks\n", 
+         filename, fd, bumBlocks);
    }
    return 0;
 }
@@ -56,9 +66,53 @@ tfs_mount should verify the file system is the correct type. Only one
 file system may be mounted at a time. Use tfs_unmount to cleanly
 unmount the currently mounted file system. Must return a specified
 success/error code. */
-int tfs_mount(char *diskname);
+int tfs_mount(char *diskname){
 
-int tfs_unmount(void);
+   char buff[BLOCKSIZE];
+   fileDescriptor fd;
+   int readStatus;
+
+
+
+   if(mountedDisk){
+      tfs_unmount();
+   }
+
+   if(0 > (fd = openDisk(diskname, 0))){
+      //Throw bad fs error
+   }
+
+   if(0 > (readStatus = readBlock(fd, 0, buff))){
+      // Throw error that it could not read the disk
+   }
+
+   if(buff[1] != 0x44){
+      //Throw error that ut is a bad fs
+   }
+
+   mountedDisk = fd;
+
+   if(DEBUG){
+      printf("DEBUG: The disk that is now mounted is %s\n", diskname);
+   }
+
+   return 1; 
+}
+
+int tfs_unmount(void){
+
+   if(mountedDisk < 0){
+      //throw file already unmounted error
+   }
+
+   if(DEBUG){
+      printf("DEBUG: FD-%d was unmounted\n", mountedDisk);
+   }
+
+   mountedDisk = -1;
+
+   return 1;
+}
 
 /* Creates or Opens an existing file for reading and writing on the
 currently mounted file system. Creates a dynamic resource table entry
