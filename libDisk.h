@@ -1,6 +1,8 @@
 #ifndef LIBDISK_H
 #define LIBDISK_H
 
+#include <time.h>
+
 typedef struct {
     int fd;
     int nBlocks;

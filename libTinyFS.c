@@ -44,7 +44,7 @@ int tfs_mkfs(char *filename, int nBytes) {
       /*initialize supernode, inodes, etc.*/
       lseek(fd, 0, 0);/*seek to start of superblock*/
       setter = 0x01; /*set setter as superblock code*/
-      write(fd, &i, sizeof(char));/*write superblock code as 1 byte*/
+      writeSB(fd, &i, sizeof(char));/*write superblock*/
       /*magic number 0x44 should already be in 2nd byte*/
       /*add the block number of the root inode*/
       /*a pointer to a list of free blocks (or another way to manage those)*/

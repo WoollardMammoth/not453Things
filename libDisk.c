@@ -31,8 +31,8 @@ int openDisk(char *filename, int nBytes) {
          /*nBytes is a multiple of 256, meaning it always ends on a block boundary*/
          newDisk.nBlocks = (nBytes - (nBytes % BLOCKSIZE)) / BLOCKSIZE;
 
-         //currentTime = time(NULL);
-         //newDisk.timeStamp = ctime(&currentTime);
+         /*currentTime = time(NULL);*/
+         /*newDisk.timeStamp = ctime(&currentTime);*/
          newDisk.timeStamp = time(NULL);
 
          diskArray[totalDisks++] = newDisk;

@@ -1,6 +1,6 @@
 TARGET   = tinyFsDemo
 CC       = gcc
-CCFLAGS  = -std=c89 -pedantic -Wall -Werror
+CCFLAGS  = -std=c99 -pedantic -Wall -Werror
 LDFLAGS  = -lm
 SOURCES  = $(wildcard *.c)
 INCLUDES = $(wildcard *.h)
