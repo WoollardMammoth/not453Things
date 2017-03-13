@@ -102,7 +102,7 @@ int writeBlock(int disk, int bNum, void *block) {
   
    if (write(disk, block, BLOCKSIZE) != BLOCKSIZE) {
       /*ERROR -- Could not write entire block*/
-      return -3;
+      return -4;
    }
 
    return 0;

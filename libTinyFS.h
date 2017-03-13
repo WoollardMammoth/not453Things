@@ -22,13 +22,13 @@ typedef struct fileExtent {
    char nextBlock = 0x00;
    char data[BLOCKSIZE-3] = {0x00};
    
-}
+} fileExtent;
 
 typedef struct freeBlock {
    char blockType = 4;
    char magicNum = 0x44;
    char nextFreeBlock;
-}
+} freeBlock;
 
 
 int tfs_mkfs(char *filename, int nBytes);
