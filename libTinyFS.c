@@ -174,7 +174,7 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    if(mountedDisk == NULL) {
       //No mounted disk error
    }
-
+   return 0;
 }
 
 /* deletes a file and marks its blocks as free on disk. */
