@@ -27,19 +27,6 @@ int openDisk(char *filename, int nBytes) {
       return -1;
    }
  
-<<<<<<< HEAD
-   newDisk.fd = fd;
-   newDisk.name = malloc(sizeof(char) * (strlen(filename) + 1));
-   strcpy(newDisk.name, filename);
-   /*nBytes is a multiple of 256, meaning it always ends on a block boundary*/
-   newDisk.nBlocks = (nBytes - (nBytes % BLOCKSIZE)) / BLOCKSIZE;
-   
-   currentTime = time(NULL);
-   /*newDisk.timeStamp = ctime(&currentTime);*/
-   
-   diskArray[totalDisks++] = newDisk;
-=======
->>>>>>> a37fc8217b067afca94de932ec7fb4c710d5a60e
    return fd;
 }
 

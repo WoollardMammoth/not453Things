@@ -11,45 +11,6 @@
 static fileDescriptor mountedDisk = -1; // This is the FD of the disk that is mounted
 
 
-void setUpFS(int fd, char *fname, int nBlocks) {
-   SuperBlock sb;
-   Inode root;
-   FreeBlock everythingElse;
-   int i;
-   char *initializer;
-
-   sb.blockType = 1;
-   sb.magicNum = 0x44;
-   sb.rootInodeBlockNum = 1;
-   sb.freeBlocksRoot = 2;
-   
-   root.blockType = 2;
-   root.magicNum = 0x44;
-   memcpy(root.name, fname, 9);
-   root.size = nBlocks;
-   /*timestamp things*/
-
-   everythingElse.blockType = 4;
-   everythingElse.magicNum = 0x44;
-
-   initializer = calloc(BLOCKSIZE, sizeof(char));/*set a blank block*/
-   for (i = 0; i < nBlocks; i++) {
-      writeBlock(fd, i, initializer);/*write blank data to every block*/
-   }
-   free(initializer);
-
-   writeBlock(fd, 0, &sb);
-   writeBlock(fd, 1, &root);
-
-   for (i = 2; i<nBlocks; i++) {
-      everythingElse.nextFreeBlock = i+1;
-      if (i+1 == nBlocks) {
-         everythingElse.nextFreeBlock = -1;
-      }
-      writeBlock(fd, i, &everythingElse);
-   }  
-}
-
 /*
  * Makes a blank TinyFS file system of size nBytes on the unix file specified
  * by ‘filename’. This function should use the emulated disk library to open
@@ -178,4 +139,45 @@ int tfs_readByte(fileDescriptor FD, char *buffer);
 /* change the file pointer location to offset (absolute). Returns
 success/error codes.*/
 int tfs_seek(fileDescriptor FD, int offset);
+
+
+void setUpFS(int fd, char *fname, int nBlocks) {
+   SuperBlock sb;
+   Inode root;
+   FreeBlock everythingElse;
+   int i;
+   char *initializer;
+
+   sb.blockType = 1;
+   sb.magicNum = 0x44;
+   sb.rootInodeBlockNum = 1;
+   sb.freeBlocksRoot = 2;
+   
+   root.blockType = 2;
+   root.magicNum = 0x44;
+   memcpy(root.name, fname, 9);
+   root.size = nBlocks;
+   /*timestamp things*/
+
+   everythingElse.blockType = 4;
+   everythingElse.magicNum = 0x44;
+
+   initializer = calloc(BLOCKSIZE, sizeof(char));/*set a blank block*/
+   for (i = 0; i < nBlocks; i++) {
+      writeBlock(fd, i, initializer);/*write blank data to every block*/
+   }
+   free(initializer);
+
+   writeBlock(fd, 0, &sb);
+   writeBlock(fd, 1, &root);
+
+   for (i = 2; i<nBlocks; i++) {
+      everythingElse.nextFreeBlock = i+1;
+      if (i+1 == nBlocks) {
+         everythingElse.nextFreeBlock = -1;
+      }
+      writeBlock(fd, i, &everythingElse);
+   }  
+}
+
 

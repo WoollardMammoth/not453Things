@@ -51,4 +51,6 @@ int tfs_readByte(fileDescriptor FD, char *buffer);
 
 int tfs_seek(fileDescriptor FD, int offset);
 
+void setUpFS(int fd, char *fname, int nBlocks);
+
 #endif
