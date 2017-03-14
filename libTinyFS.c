@@ -144,6 +144,7 @@ int tfs_closeFile(fileDescriptor FD) {
    if(temp != NULL && temp->fd == FD) {/*first entry is a match*/
       resourceTable = temp->next;
       free(temp);
+      close(FD);
       return 0;/*success*/
    } else {
       previous = temp;
@@ -152,6 +153,7 @@ int tfs_closeFile(fileDescriptor FD) {
          if (temp->fd == FD) {
             previous->next = temp->next;
             free(temp);
+            close(FD);
             return 0;/*success*/
          }
       }
@@ -195,7 +197,6 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    root.blockType = 2;
    root.magicNum = 0x44;
    memcpy(root.name, fname, 9);
-   root.size = nBlocks;
    /*timestamp things*/
 
    everythingElse.blockType = 4;
