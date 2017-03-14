@@ -15,6 +15,7 @@ typedef struct Inode {
    char magicNum;
    char name[9];
    char startOfFile;
+   char nextInode;
    time_t creationTime;
    time_t lastAccess;
 } Inode;
