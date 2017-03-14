@@ -96,10 +96,13 @@ int tfs_unmount(void){
    return 1;
 }
 
-char[BLOCKSIZE] makeInode(char *name, time_t time){
+char *makeInode(char *name, time_t time){
 	char returnBuffer[BLOCKSIZE];
 
-	returnBuffer[0]
+	returnBuffer[0] = 2;
+	returnBuffer[1] = 0x44;
+	returnBuffer + 8 = name;
+	returnBuffer[] = 
 }
 
 
