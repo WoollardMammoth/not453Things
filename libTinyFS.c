@@ -28,26 +28,6 @@ int tfs_mkfs(char *filename, int nBytes) {
    } else {
       numBlocks = nBytes/BLOCKSIZE;/*by the magic of integer division*/
       return setUpFS(fd, filename, numBlocks);
-
-/*      initializer = malloc(2*sizeof(char));
-      initializer[0] = 0x04;free block code
-      initializer[1] = 0x44;magic number
-      for (i = 0; i < numBlocks; i++)
-      {
-         lseek(fd, BLOCKSIZE*i, 0);go to start of next block
-         write(fd, initializer, 2*sizeof(char));write first 2 bytes
-      } 
-      free(initializer); 
-      initialize supernode, inodes, etc.
-      lseek(fd, 0, 0);seek to start of superblock
-      setter = 0x01; set setter as superblock code
-      writeSB(fd, &i, sizeof(char));write superblock
-      magic number 0x44 should already be in 2nd byte
-      add the block number of the root inode
-      a pointer to a list of free blocks (or another way to manage those)
-      
-      return exit code*/
-
    }
    if(DEBUG){
       printf("DEBUG: The file  system %s was opened with fd '%d' and size of '%d' blocks\n", 
@@ -151,7 +131,33 @@ fileDescriptor tfs_openFile(char *name){
 
 /* Closes the file, de-allocates all system/disk resources, and
 removes table entry */
-int tfs_closeFile(fileDescriptor FD);
+int tfs_closeFile(fileDescriptor FD) {
+   
+   DRT *temp = resourceTable;
+   DRT *previous;
+   if(mountedDisk == NULL) {
+      /*return not mounted error*/
+   } else if (FD < 0) {
+      /* return invalid FD error*/
+   }
+   
+   if(temp != NULL && temp->fd == FD) {/*first entry is a match*/
+      resourceTable = temp->next;
+      free(temp);
+      return 0;/*success*/
+   } else {
+      previous = temp;
+      temp = temp->next;
+      while (temp != NULL){
+         if (temp->fd == FD) {
+            previous->next = temp->next;
+            free(temp);
+            return 0;/*success*/
+         }
+      }
+   }
+   return -1; /*FD not here/valid*/
+}
 
 /* Writes buffer ‘buffer’ of size ‘size’, which represents an entire
 file’s content, to the file system. Previous content (if any) will be

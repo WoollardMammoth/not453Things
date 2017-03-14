@@ -14,8 +14,9 @@ typedef struct Inode {
    char blockType;
    char magicNum;
    char name[9];
-   unsigned size;
-   void *timeStamp;/*change this type*/ 
+   char startOfFile;
+   time_t creationTime;
+   time_t lastAccess;
 } Inode;
 
 typedef struct FileExtent {
