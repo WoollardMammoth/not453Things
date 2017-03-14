@@ -161,6 +161,7 @@ int tfs_closeFile(fileDescriptor FD) {
             close(FD);
             return 0;/*success*/
          }
+         temp = temp->next;
       }
    }
    return -1; /*FD not here/valid*/
@@ -171,9 +172,57 @@ file’s content, to the file system. Previous content (if any) will be
 completely lost. Sets the file pointer to 0 (the start of file) when
 done. Returns success/error codes. */
 int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
-   if(mountedDisk == NULL) {
+   Inode newInode;
+   
+   DRT *temp = resourceTable;
+   DRT *previous;
+
+
+   if (mountedDisk == NULL) {
       //No mounted disk error
    }
+   if (FD < 0) {
+      //Invalid FD error
+   }
+
+   //Create new inode
+   newInode.blocktype = 1;
+   newInode.magicNum = 0x44;
+
+   //Traverse data table to find file name
+   if (temp == NULL) {
+      //Error? resource table empty
+   }
+
+   while (temp != NULL) {
+      if (temp->fd == FD) {
+         strcpy(newInode.name, temp->filename);
+         break;
+      }
+      temp = temp->next;
+   }
+
+   /*****Atempted to simplify this: see above***
+   if(temp != NULL && temp->fd == FD) {
+      strcpy(newInode.name, temp->filename;
+   }
+   else {
+      temp = temp->next; 
+      while (temp != NULL) {
+         if (temp->fd == FD) {
+            strcpy(newInode.name, temp->filename);
+            break;
+         }
+         temp = temp->next;
+      }
+   }
+   */
+
+
+   //Append inode to list 
+   //Point start of inode file to freeblocksroot from superblock 
+   //Write contents of buffer to file extents
+
    return 0;
 }
 
