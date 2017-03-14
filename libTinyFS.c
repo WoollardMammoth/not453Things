@@ -87,7 +87,11 @@ int tfs_mount(char *diskname){
       //Throw error that ut is a bad fs
    }
 
-   mountedDisk = diskname;
+   
+   //mountedDisk = diskname;
+   mountedDisk = calloc(sizeof(char), strlen(diskname) + 1);
+   strcpy(mountedDisk, diskname);
+
 
    if(DEBUG){
       printf("DEBUG: The disk that is now mounted is %s\n", diskname);
@@ -106,6 +110,7 @@ int tfs_unmount(void){
       printf("DEBUG: %s was unmounted\n", mountedDisk);
    }
 
+   free(mountedDisk); 
    mountedDisk = NULL;
 
    return 1;
@@ -123,7 +128,7 @@ fileDescriptor tfs_openFile(char *name){
 	char readBuffer[BLOCKSIZE];
 
 	if(mountedDisk == NULL){
-		//return no mounte disk error
+		//return no mounted disk error
 	}
 	else{
 		while(temp != NULL){
@@ -157,7 +162,12 @@ int tfs_closeFile(fileDescriptor FD);
 file’s content, to the file system. Previous content (if any) will be
 completely lost. Sets the file pointer to 0 (the start of file) when
 done. Returns success/error codes. */
-int tfs_writeFile(fileDescriptor FD,char *buffer, int size);
+int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
+   if(mountedDisk == NULL) {
+      //No mounted disk error
+   }
+
+}
 
 /* deletes a file and marks its blocks as free on disk. */
 int tfs_deleteFile(fileDescriptor FD);
