@@ -111,6 +111,13 @@ int tfs_unmount(void){
    return 1;
 }
 
+char[BLOCKSIZE] makeInode(char *name, time_t time){
+	char returnBuffer[BLOCKSIZE];
+
+	returnBuffer[0]
+}
+
+
 /* Creates or Opens an existing file for reading and writing on the
 currently mounted file system. Creates a dynamic resource table entry
 for the file, and returns a file descriptor (integer) that can be
@@ -120,10 +127,14 @@ fileDescriptor tfs_openFile(char *name){
 	fileDescriptor fd;
 	int i;
 	int present = 0;
-	char readBuffer[BLOCKSIZE];
+	char buffer[BLOCKSIZE];
+	char tempBuffer[BLOCKSIZE];
+	time_t currentTime;
+	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
+	char nextFreeBlock;
 
 	if(mountedDisk == NULL){
-		//return no mounte disk error
+		//return no mounted disk error
 	}
 	else{
 		while(temp != NULL){
@@ -135,17 +146,37 @@ fileDescriptor tfs_openFile(char *name){
 		fd = openDisk(mountedDisk, 0);
 	}
 
-	for(i = 0; i < DEFAULT_DISK_SIZE/BLOCKSIZE && !present; i++){
-		if(readBlock(fd,i,readBuffer) < 0){
+	for(i = 0; i < numBlocks && !present; i++){
+		if(readBlock(fd,i,buffer) < 0){
 			/*Need to return Error*/
 		}
 		if(readBuffer[0] == 2){
-			if(strcmp(name, &(readBuffer[4])) == 0){
+			if(strcmp(name, &(buffer[4])) == 0){
 				present = 1;
 				break;
 			}
 		}
 	}
+
+	currentTime = time(NULL);
+
+	if(!present){
+		if(readBlock(fd, 0, buffer) < 0){
+			/* return error */
+		}
+		if(buffer[0] == 1){
+			nextFreeBlock = buffer[3];
+			readBlock(fd,nextFreeBlock,tempBuffer);
+			buffer[3] = tempBuffer[2];
+			writeBlock(fd,0,buffer);
+			break;
+		}
+		else{
+			/* return error for no super node */
+		}
+	}
+
+	if(nextFreeBlock < 0)
 	return fd;
 }
 
