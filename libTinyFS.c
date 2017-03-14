@@ -2,14 +2,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 #include "tinyFS.h"
 #include "libTinyFS.h"
 #include "libDisk.h"
 
 #define DEBUG 0
 
-static fileDescriptor mountedDisk = -1; // This is the FD of the disk that is mounted
-
+static char *mountedDisk = NULL; // This is the name of the disk that is mounted
+static DRT *resourceTable = NULL;
 
 void setUpFS(int fd, char *fname, int nBlocks) {
    SuperBlock sb;
@@ -125,7 +126,7 @@ int tfs_mount(char *diskname){
       //Throw error that ut is a bad fs
    }
 
-   mountedDisk = fd;
+   mountedDisk = diskname;
 
    if(DEBUG){
       printf("DEBUG: The disk that is now mounted is %s\n", diskname);
@@ -136,15 +137,15 @@ int tfs_mount(char *diskname){
 
 int tfs_unmount(void){
 
-   if(mountedDisk < 0){
+   if(mountedDisk){
       //throw file already unmounted error
    }
 
    if(DEBUG){
-      printf("DEBUG: FD-%d was unmounted\n", mountedDisk);
+      printf("DEBUG: %s was unmounted\n", mountedDisk);
    }
 
-   mountedDisk = -1;
+   mountedDisk = NULL;
 
    return 1;
 }
@@ -153,7 +154,39 @@ int tfs_unmount(void){
 currently mounted file system. Creates a dynamic resource table entry
 for the file, and returns a file descriptor (integer) that can be
 used to reference this file while the filesystem is mounted. */
-fileDescriptor tfs_openFile(char *name);
+fileDescriptor tfs_openFile(char *name){
+	DRT *temp = resourceTable;
+	fileDescriptor fd;
+	int i;
+	int present = 0;
+	char readBuffer[BLOCKSIZE];
+
+	if(mountedDisk == NULL){
+		//return no mounte disk error
+	}
+	else{
+		while(temp != NULL){
+			if(strcmp(temp->filename,name) == 0){
+				return temp->fd;
+			}
+			temp = temp->next;
+		}
+		fd = openDisk(mountedDisk, 0);
+	}
+
+	for(i = 0; i < DEFAULT_DISK_SIZE/BLOCKSIZE && !present; i++){
+		if(readBlock(fd,i,readBuffer) < 0){
+			/*Need to return Error*/
+		}
+		if(readBuffer[0] == 2){
+			if(strcmp(name, &(readBuffer[4])) == 0){
+				present = 1;
+				break;
+			}
+		}
+	}
+	return fd;
+}
 
 /* Closes the file, de-allocates all system/disk resources, and
 removes table entry */

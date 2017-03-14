@@ -32,6 +32,13 @@ typedef struct FreeBlock {
    char nextFreeBlock;
 } FreeBlock;
 
+typedef struct DRT {
+	struct DRT *next;
+	fileDescriptor fd;
+	char *filename;
+	time_t creation;
+	time_t lastAccess;
+} DRT;
 
 int tfs_mkfs(char *filename, int nBytes);
 
