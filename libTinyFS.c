@@ -26,7 +26,7 @@ int tfs_mkfs(char *filename, int nBytes) {
       /*ERROR THINGS*/
    } else {
       numBlocks = nBytes/BLOCKSIZE;/*by the magic of integer division*/
-      setUpFS(fd, filename, numBlocks);
+      return setUpFS(fd, filename, numBlocks);
 
 /*      initializer = malloc(2*sizeof(char));
       initializer[0] = 0x04;free block code
@@ -141,7 +141,7 @@ success/error codes.*/
 int tfs_seek(fileDescriptor FD, int offset);
 
 
-void setUpFS(int fd, char *fname, int nBlocks) {
+int setUpFS(int fd, char *fname, int nBlocks) {
    SuperBlock sb;
    Inode root;
    FreeBlock everythingElse;
@@ -164,20 +164,29 @@ void setUpFS(int fd, char *fname, int nBlocks) {
 
    initializer = calloc(BLOCKSIZE, sizeof(char));/*set a blank block*/
    for (i = 0; i < nBlocks; i++) {
-      writeBlock(fd, i, initializer);/*write blank data to every block*/
+      if(0 != writeBlock(fd, i, initializer)) {/*write blank data to every block*/
+         return -10;/*initilizing data to 0 failed*/
+      }
    }
    free(initializer);
 
-   writeBlock(fd, 0, &sb);
-   writeBlock(fd, 1, &root);
+   if (0 != writeBlock(fd, 0, &sb)) {
+      return -11; /*writing superBlock failed*/
+   }
+   if (0 != writeBlock(fd, 1, &root)) {
+      return -12; /*writing root inode failed*/      
+   }
 
    for (i = 2; i<nBlocks; i++) {
       everythingElse.nextFreeBlock = i+1;
       if (i+1 == nBlocks) {
          everythingElse.nextFreeBlock = -1;
       }
-      writeBlock(fd, i, &everythingElse);
-   }  
+      if (0 != writeBlock(fd, i, &everythingElse)) {
+         return -13; /*writing free block failed*/
+      }
+   }
+   return 0; /*success*/
 }
 
 
