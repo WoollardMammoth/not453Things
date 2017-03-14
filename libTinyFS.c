@@ -1,12 +1,54 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include "tinyFS.h"
+#include "libTinyFS.h"
 #include "libDisk.h"
 
 #define DEBUG 0
 
-static fileDescriptor *mountedDisk = -1; // This is the FD of the disk that is mounted
+static fileDescriptor mountedDisk = -1; // This is the FD of the disk that is mounted
 
+
+void setUpFS(int fd, char *fname, int nBlocks) {
+   SuperBlock sb;
+   Inode root;
+   FreeBlock everythingElse;
+   int i;
+   char *initializer;
+
+   sb.blockType = 1;
+   sb.magicNum = 0x44;
+   sb.rootInodeBlockNum = 1;
+   sb.freeBlocksRoot = 2;
+   
+   root.blockType = 2;
+   root.magicNum = 0x44;
+   memcpy(root.name, fname, 9);
+   root.size = nBlocks;
+   /*timestamp things*/
+
+   everythingElse.blockType = 4;
+   everythingElse.magicNum = 0x44;
+
+   initializer = calloc(BLOCKSIZE, sizeof(char));/*set a blank block*/
+   for (i = 0; i < nBlocks; i++) {
+      writeBlock(fd, i, initializer);/*write blank data to every block*/
+   }
+   free(initializer);
+
+   writeBlock(fd, 0, &sb);
+   writeBlock(fd, 1, &root);
+
+   for (i = 2; i<nBlocks; i++) {
+      everythingElse.nextFreeBlock = i+1;
+      if (i+1 == nBlocks) {
+         everythingElse.nextFreeBlock = -1;
+      }
+      writeBlock(fd, i, &everythingElse);
+   }  
+}
 
 /*
  * Makes a blank TinyFS file system of size nBytes on the unix file specified
@@ -17,44 +59,37 @@ static fileDescriptor *mountedDisk = -1; // This is the FD of the disk that is m
  * specified success/error code. 
  */
 int tfs_mkfs(char *filename, int nBytes) {
-   int i, fd, numBlocks;
-   char *initializer;
-   char setter;
+   int fd, numBlocks;
    if ((fd = openDisk(filename, nBytes)) != 0)
    {
       /*ERROR THINGS*/
    } else {
-      /*Initialze all data to 0x00*/
       numBlocks = nBytes/BLOCKSIZE;/*by the magic of integer division*/
-      initializer = calloc(BLOCKSIZE, sizeof(char));/*set a blank block*/
-      for (i = 0; i < numBlocks; i++) {
-         writeBlock(fd, i, initializer);/*write blank data to every block*/
-      }
-      free(initializer);
+      setUpFS(fd, filename, numBlocks);
 
-      initializer = malloc(2*sizeof(char));
-      initializer[0] = 0x04;/*free block code*/
-      initializer[1] = 0x44;/*magic number*/
+/*      initializer = malloc(2*sizeof(char));
+      initializer[0] = 0x04;free block code
+      initializer[1] = 0x44;magic number
       for (i = 0; i < numBlocks; i++)
       {
-         lseek(fd, BLOCKSIZE*i, 0);/*go to start of next block*/
-         write(fd, initializer, 2*sizeof(char));/*write first 2 bytes*/
+         lseek(fd, BLOCKSIZE*i, 0);go to start of next block
+         write(fd, initializer, 2*sizeof(char));write first 2 bytes
       } 
       free(initializer); 
-      /*initialize supernode, inodes, etc.*/
-      lseek(fd, 0, 0);/*seek to start of superblock*/
-      setter = 0x01; /*set setter as superblock code*/
-      writeSB(fd, &i, sizeof(char));/*write superblock*/
-      /*magic number 0x44 should already be in 2nd byte*/
-      /*add the block number of the root inode*/
-      /*a pointer to a list of free blocks (or another way to manage those)*/
+      initialize supernode, inodes, etc.
+      lseek(fd, 0, 0);seek to start of superblock
+      setter = 0x01; set setter as superblock code
+      writeSB(fd, &i, sizeof(char));write superblock
+      magic number 0x44 should already be in 2nd byte
+      add the block number of the root inode
+      a pointer to a list of free blocks (or another way to manage those)
       
-      /*return exit code*/
+      return exit code*/
 
    }
    if(DEBUG){
       printf("DEBUG: The file  system %s was opened with fd '%d' and size of '%d' blocks\n", 
-         filename, fd, bumBlocks);
+         filename, fd, numBlocks);
    }
    return 0;
 }

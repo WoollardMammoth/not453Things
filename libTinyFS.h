@@ -1,34 +1,36 @@
 #ifndef LIBTINYFS_H
 #define LIBTINYFS_H
 
-typedef struct superBlock {
-   char blockType = 1;
-   char magicNum = 0x44;
-   char rootInodeBlockNum;
-   void *freeBlocks;
-} superBlock;
+#include "tinyFS.h"
 
-typedef struct inode {
-   char blockType = 2;
-   char magicNum = 0x44;
+typedef struct SuperBlock {
+   char blockType;
+   char magicNum;
+   char rootInodeBlockNum;
+   char freeBlocksRoot;
+} SuperBlock;
+
+typedef struct Inode {
+   char blockType;
+   char magicNum;
    char name[9];
    unsigned size;
    void *timeStamp;/*change this type*/ 
-} inode;
+} Inode;
 
-typedef struct fileExtent {
-   char blockType = 3;
-   char magicNum = 0x44;
-   char nextBlock = 0x00;
-   char data[BLOCKSIZE-3] = {0x00};
+typedef struct FileExtent {
+   char blockType;
+   char magicNum;
+   char nextBlock;
+   char data[BLOCKSIZE-3];
    
-} fileExtent;
+} FileExtent;
 
-typedef struct freeBlock {
-   char blockType = 4;
-   char magicNum = 0x44;
+typedef struct FreeBlock {
+   char blockType;
+   char magicNum;
    char nextFreeBlock;
-} freeBlock;
+} FreeBlock;
 
 
 int tfs_mkfs(char *filename, int nBytes);
