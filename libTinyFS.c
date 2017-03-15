@@ -175,8 +175,11 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    Inode newInode;
    
    DRT *temp = resourceTable;
+<<<<<<< HEAD
    //DRT *previous;
 
+=======
+>>>>>>> 92fecded18108b612d5f203fe5c6298be9295f20
 
    if (mountedDisk == NULL) {
       //No mounted disk error
@@ -301,4 +304,20 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    return 0; /*success*/
 }
 
+
+/*----------Method stubs for read/write structs----------*/
+SuperBlock readSuperBlock();                           /**/
+                                                       /**/
+int writeSuperBlock(SuperBlock sb);                    /**/
+                                                       /**/
+Inode readInode(char blockNum);                        /**/
+                                                       /**/
+int writeInode(char blockNum, Inode in);               /**/
+                                                       /**/
+FileExtent readFileExtent(char blockNum);              /**/
+                                                       /**/
+int writeFileExtent(char blockNum, FileExtent fe);     /**/
+                                                       /**/
+int writeFreeBlock(char blockNum, FreeBlock fb);       /**/
+/*-------------------------------------------------------*/
 

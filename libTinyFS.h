@@ -62,4 +62,18 @@ int tfs_seek(fileDescriptor FD, int offset);
 
 int setUpFS(int fd, char *fname, int nBlocks);
 
+SuperBlock readSuperBlock();
+
+int writeSuperBlock(SuperBlock sb);
+
+Inode readInode(char blockNum);
+
+int writeInode(char blockNum, Inode in);
+
+FileExtent readFileExtent(char blockNum);
+
+int writeFileExtent(char blockNum, FileExtent fe);
+
+int writeFreeBlock(char blockNum, FreeBlock fb);
+
 #endif
