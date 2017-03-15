@@ -8,6 +8,7 @@ typedef struct SuperBlock {
    char magicNum;
    char rootInodeBlockNum;
    char freeBlocksRoot;
+   char empty[BLOCKSIZE - 4];
 } SuperBlock;
 
 typedef struct Inode {
@@ -15,8 +16,10 @@ typedef struct Inode {
    char magicNum;
    char name[9];
    char startOfFile;
+   char nextInode;
    time_t creationTime;
    time_t lastAccess;
+   char empty[256 - 13 - (3*sizeof(time_t))];/*not sure why 3*sizeof(time_t)?*/
 } Inode;
 
 typedef struct FileExtent {
@@ -24,13 +27,13 @@ typedef struct FileExtent {
    char magicNum;
    char nextBlock;
    char data[BLOCKSIZE-3];
-   
 } FileExtent;
 
 typedef struct FreeBlock {
    char blockType;
    char magicNum;
    char nextFreeBlock;
+   char empty[BLOCKSIZE - 3];
 } FreeBlock;
 
 typedef struct DRT {
@@ -60,5 +63,19 @@ int tfs_readByte(fileDescriptor FD, char *buffer);
 int tfs_seek(fileDescriptor FD, int offset);
 
 int setUpFS(int fd, char *fname, int nBlocks);
+
+SuperBlock readSuperBlock(fileDescriptor fd);
+
+int writeSuperBlock(fileDescriptor fd, SuperBlock *sb);
+
+Inode readInode(fileDescriptor fd, char blockNum);
+
+int writeInode(fileDescriptor fd, char blockNum, Inode *in);
+
+FileExtent readFileExtent(fileDescriptor fd, char blockNum);
+
+int writeFileExtent(fileDescriptor fd, char blockNum, FileExtent *fe);
+
+int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb);
 
 #endif

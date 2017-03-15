@@ -183,6 +183,7 @@ int tfs_closeFile(fileDescriptor FD) {
    if(temp != NULL && temp->fd == FD) {/*first entry is a match*/
       resourceTable = temp->next;
       free(temp);
+      close(FD);
       return 0;/*success*/
    } else {
       previous = temp;
@@ -191,8 +192,10 @@ int tfs_closeFile(fileDescriptor FD) {
          if (temp->fd == FD) {
             previous->next = temp->next;
             free(temp);
+            close(FD);
             return 0;/*success*/
          }
+         temp = temp->next;
       }
    }
    return -1; /*FD not here/valid*/
@@ -203,10 +206,70 @@ file’s content, to the file system. Previous content (if any) will be
 completely lost. Sets the file pointer to 0 (the start of file) when
 done. Returns success/error codes. */
 int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
-   if(mountedDisk == NULL) {
+   Inode newInode;
+   
+   DRT *temp = resourceTable;
+   //DRT *previous;
+
+   if (mountedDisk == NULL) {
       //No mounted disk error
    }
+   if (FD < 0) {
+      //Invalid FD error
+   }
 
+   //Create new inode
+   newInode.blockType = 1;
+   newInode.magicNum = 0x44;
+
+   //Traverse data table to find file name
+   if (temp == NULL) {
+      //Error? resource table empty
+   }
+
+   while (temp != NULL) {
+      if (temp->fd == FD) {
+         strcpy(newInode.name, temp->filename);
+         break;
+      }
+      temp = temp->next;
+   }
+
+   /*****Atempted to simplify this: see above***
+   if(temp != NULL && temp->fd == FD) {
+      strcpy(newInode.name, temp->filename;
+   }
+   else {
+      temp = temp->next; 
+      while (temp != NULL) {
+         if (temp->fd == FD) {
+            strcpy(newInode.name, temp->filename);
+            break;
+         }
+         temp = temp->next;
+      }
+   }
+   */
+
+   //Insert inode at freeblocksroot
+   //Point last inode to newInode
+   //Increment freeblocksroot by 1
+   //Start newInodes file extent at freeblocksroot
+   //Write buffer data
+   
+
+   //newInode.startOfFile
+   newInode.nextInode = -1; 
+   
+   newInode.creationTime = time(NULL); //Not positive about these timestamp
+   newInode.lastAccess = time(NULL);
+
+
+
+   //Append inode to list 
+   //Point start of inode file to freeblocksroot from superblock 
+   //Write contents of buffer to file extents
+   return 0;
 }
 
 /* deletes a file and marks its blocks as free on disk. */
@@ -239,7 +302,6 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    root.blockType = 2;
    root.magicNum = 0x44;
    memcpy(root.name, fname, 9);
-   root.size = nBlocks;
    /*timestamp things*/
 
    everythingElse.blockType = 4;
@@ -272,4 +334,38 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    return 0; /*success*/
 }
 
+
+/*----------Method stubs for read/write structs----------*/
+SuperBlock readSuperBlock(fileDescriptor fd){ 
+   SuperBlock sb;
+   readBlock(fd, 0, &sb);
+   return sb;
+}
+int writeSuperBlock(fileDescriptor fd, SuperBlock *sb) {
+   return writeBlock(fd, 0, sb);
+}
+
+Inode readInode(fileDescriptor fd, char blockNum) {
+   Inode in;
+   readBlock(fd, blockNum, &in);
+   return in;
+}
+
+int writeInode(fileDescriptor fd, char blockNum, Inode *in) {
+   return writeBlock(fd, blockNum, in);
+}
+
+FileExtent readFileExtent(fileDescriptor fd, char blockNum) {
+   FileExtent fe;
+   readBlock(fd, blockNum, &fe);
+   return fe;
+}
+
+int writeFileExtent(fileDescriptor fd, char blockNum, FileExtent *fe) {
+   return writeBlock(fd, blockNum, fe);
+}
+
+int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb) {
+   return writeBlock(fd, blockNum, fb);
+}
 
