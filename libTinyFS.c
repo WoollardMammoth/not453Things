@@ -288,8 +288,11 @@ int setUpFS(int fd, char *fname, int nBlocks) {
 
 
 /*----------Method stubs for read/write structs----------*/
-SuperBlock readSuperBlock();                           /**/
-                                                       /**/
+SuperBlock readSuperBlock(fileDescriptor fd){ 
+   SuperBlock sb;
+   readBlock(fd, 0, &sb);
+   return sb;
+}
 int writeSuperBlock(SuperBlock sb);                    /**/
                                                        /**/
 Inode readInode(char blockNum);                        /**/
