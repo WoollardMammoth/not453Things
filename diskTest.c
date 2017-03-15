@@ -4,8 +4,8 @@
 
 #include "libDisk.h"
 
-#define NUM_TEST_DISKS 4 /* number of disks to test with */
 #define BLOCKSIZE 256
+#define NUM_TEST_DISKS 4 /* number of disks to test with */
 
 
 #define NUM_BLOCKS 50 /* total number of blocks on each disk */
@@ -22,7 +22,7 @@ int main()
     char diskName[] = "diskX.dsk"; /* Unix file name for the disks */
     char *buffer; /* holds one block of information */
     int testBlocks[NUM_TEST_BLOCKS] = TEST_BLOCKS; /* to contain a number of blocks to test */
-
+   
     for (index =0; index < NUM_TEST_DISKS; index++) 
     {
         /* create a new buffer and fill it with $ */

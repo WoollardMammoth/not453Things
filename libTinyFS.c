@@ -96,6 +96,16 @@ int tfs_unmount(void){
    return 1;
 }
 
+char *makeInode(char *name, time_t time){
+	char returnBuffer[BLOCKSIZE];
+
+	returnBuffer[0] = 2;
+	returnBuffer[1] = 0x44;
+	returnBuffer + 8 = name;
+	returnBuffer[] = 
+}
+
+
 /* Creates or Opens an existing file for reading and writing on the
 currently mounted file system. Creates a dynamic resource table entry
 for the file, and returns a file descriptor (integer) that can be
@@ -105,7 +115,11 @@ fileDescriptor tfs_openFile(char *name){
 	fileDescriptor fd;
 	int i;
 	int present = 0;
-	char readBuffer[BLOCKSIZE];
+	char buffer[BLOCKSIZE];
+	char tempBuffer[BLOCKSIZE];
+	time_t currentTime;
+	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
+	char nextFreeBlock;
 
 	if(mountedDisk == NULL){
 		//return no mounted disk error
@@ -120,17 +134,37 @@ fileDescriptor tfs_openFile(char *name){
 		fd = openDisk(mountedDisk, 0);
 	}
 
-	for(i = 0; i < DEFAULT_DISK_SIZE/BLOCKSIZE && !present; i++){
-		if(readBlock(fd,i,readBuffer) < 0){
+	for(i = 0; i < numBlocks && !present; i++){
+		if(readBlock(fd,i,buffer) < 0){
 			/*Need to return Error*/
 		}
 		if(readBuffer[0] == 2){
-			if(strcmp(name, &(readBuffer[4])) == 0){
+			if(strcmp(name, &(buffer[4])) == 0){
 				present = 1;
 				break;
 			}
 		}
 	}
+
+	currentTime = time(NULL);
+
+	if(!present){
+		if(readBlock(fd, 0, buffer) < 0){
+			/* return error */
+		}
+		if(buffer[0] == 1){
+			nextFreeBlock = buffer[3];
+			readBlock(fd,nextFreeBlock,tempBuffer);
+			buffer[3] = tempBuffer[2];
+			writeBlock(fd,0,buffer);
+			break;
+		}
+		else{
+			/* return error for no super node */
+		}
+	}
+
+	if(nextFreeBlock < 0)
 	return fd;
 }
 
@@ -286,18 +320,36 @@ int setUpFS(int fd, char *fname, int nBlocks) {
 
 
 /*----------Method stubs for read/write structs----------*/
-SuperBlock readSuperBlock();                           /**/
-                                                       /**/
-int writeSuperBlock(SuperBlock sb);                    /**/
-                                                       /**/
-Inode readInode(char blockNum);                        /**/
-                                                       /**/
-int writeInode(char blockNum, Inode in);               /**/
-                                                       /**/
-FileExtent readFileExtent(char blockNum);              /**/
-                                                       /**/
-int writeFileExtent(char blockNum, FileExtent fe);     /**/
-                                                       /**/
-int writeFreeBlock(char blockNum, FreeBlock fb);       /**/
-/*-------------------------------------------------------*/
+SuperBlock readSuperBlock(fileDescriptor fd){ 
+   SuperBlock sb;
+   readBlock(fd, 0, &sb);
+   return sb;
+}
+int writeSuperBlock(fileDescriptor fd, SuperBlock *sb) {
+   return writeBlock(fd, 0, sb);
+}
+
+Inode readInode(fileDescriptor fd, char blockNum) {
+   Inode in;
+   readBlock(fd, blockNum, &in);
+   return in;
+}
+
+int writeInode(fileDescriptor fd, char blockNum, Inode *in) {
+   return writeBlock(fd, blockNum, in);
+}
+
+FileExtent readFileExtent(fileDescriptor fd, char blockNum) {
+   FileExtent fe;
+   readBlock(fd, blockNum, &fe);
+   return fe;
+}
+
+int writeFileExtent(fileDescriptor fd, char blockNum, FileExtent *fe) {
+   return writeBlock(fd, blockNum, fe);
+}
+
+int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb) {
+   return writeBlock(fd, blockNum, fb);
+}
 
