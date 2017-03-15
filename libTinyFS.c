@@ -175,6 +175,7 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    Inode newInode;
    
    DRT *temp = resourceTable;
+   //DRT *previous;
 
    if (mountedDisk == NULL) {
       //No mounted disk error
@@ -216,11 +217,24 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    }
    */
 
+   //Insert inode at freeblocksroot
+   //Point last inode to newInode
+   //Increment freeblocksroot by 1
+   //Start newInodes file extent at freeblocksroot
+   //Write buffer data
+   
+
+   //newInode.startOfFile
+   newInode.nextInode = -1; 
+   
+   newInode.creationTime = time(NULL); //Not positive about these timestamp
+   newInode.lastAccess = time(NULL);
+
+
 
    //Append inode to list 
    //Point start of inode file to freeblocksroot from superblock 
    //Write contents of buffer to file extents
-
    return 0;
 }
 
