@@ -175,8 +175,6 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    Inode newInode;
    
    DRT *temp = resourceTable;
-   DRT *previous;
-
 
    if (mountedDisk == NULL) {
       //No mounted disk error
@@ -186,7 +184,7 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    }
 
    //Create new inode
-   newInode.blocktype = 1;
+   newInode.blockType = 1;
    newInode.magicNum = 0x44;
 
    //Traverse data table to find file name
@@ -288,4 +286,20 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    return 0; /*success*/
 }
 
+
+/*----------Method stubs for read/write structs----------*/
+SuperBlock readSuperBlock();                           /**/
+                                                       /**/
+int writeSuperBlock(SuperBlock sb);                    /**/
+                                                       /**/
+Inode readInode(char blockNum);                        /**/
+                                                       /**/
+int writeInode(char blockNum, Inode in);               /**/
+                                                       /**/
+FileExtent readFileExtent(char blockNum);              /**/
+                                                       /**/
+int writeFileExtent(char blockNum, FileExtent fe);     /**/
+                                                       /**/
+int writeFreeBlock(char blockNum, FreeBlock fb);       /**/
+/*-------------------------------------------------------*/
 
