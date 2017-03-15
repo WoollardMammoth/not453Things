@@ -175,11 +175,7 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    Inode newInode;
    
    DRT *temp = resourceTable;
-<<<<<<< HEAD
    //DRT *previous;
-
-=======
->>>>>>> 92fecded18108b612d5f203fe5c6298be9295f20
 
    if (mountedDisk == NULL) {
       //No mounted disk error
