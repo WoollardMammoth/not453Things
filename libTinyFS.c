@@ -307,16 +307,31 @@ SuperBlock readSuperBlock(fileDescriptor fd){
    readBlock(fd, 0, &sb);
    return sb;
 }
-int writeSuperBlock(SuperBlock sb);                    /**/
-                                                       /**/
-Inode readInode(char blockNum);                        /**/
-                                                       /**/
-int writeInode(char blockNum, Inode in);               /**/
-                                                       /**/
-FileExtent readFileExtent(char blockNum);              /**/
-                                                       /**/
-int writeFileExtent(char blockNum, FileExtent fe);     /**/
-                                                       /**/
-int writeFreeBlock(char blockNum, FreeBlock fb);       /**/
-/*-------------------------------------------------------*/
+int writeSuperBlock(fileDescriptor fd, SuperBlock *sb) {
+   return writeBlock(fd, 0, sb);
+}
+
+Inode readInode(fileDescriptor fd, char blockNum) {
+   Inode in;
+   readBlock(fd, blockNum, &in);
+   return in;
+}
+
+int writeInode(fileDescriptor fd, char blockNum, Inode *in) {
+   return writeBlock(fd, blockNum, in);
+}
+
+FileExtent readFileExtent(fileDescriptor fd, char blockNum) {
+   FileExtent fe;
+   readBlock(fd, blockNum, &fe);
+   return fe;
+}
+
+int writeFileExtent(fileDescriptor fd, char blockNum, FileExtent *fe) {
+   return writeBlock(fd, blockNum, fe);
+}
+
+int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb) {
+   return writeBlock(fd, blockNum, fb);
+}
 

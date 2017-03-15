@@ -66,16 +66,16 @@ int setUpFS(int fd, char *fname, int nBlocks);
 
 SuperBlock readSuperBlock(fileDescriptor fd);
 
-int writeSuperBlock(SuperBlock sb);
+int writeSuperBlock(fileDescriptor fd, SuperBlock *sb);
 
-Inode readInode(char blockNum);
+Inode readInode(fileDescriptor fd, char blockNum);
 
-int writeInode(char blockNum, Inode in);
+int writeInode(fileDescriptor fd, char blockNum, Inode *in);
 
-FileExtent readFileExtent(char blockNum);
+FileExtent readFileExtent(fileDescriptor fd, char blockNum);
 
-int writeFileExtent(char blockNum, FileExtent fe);
+int writeFileExtent(fileDescriptor fd, char blockNum, FileExtent *fe);
 
-int writeFreeBlock(char blockNum, FreeBlock fb);
+int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb);
 
 #endif
