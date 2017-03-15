@@ -173,6 +173,7 @@ completely lost. Sets the file pointer to 0 (the start of file) when
 done. Returns success/error codes. */
 int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    Inode newInode;
+   SuperBlock sb; 
    
    DRT *temp = resourceTable;
    //DRT *previous;
@@ -188,9 +189,8 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    newInode.blockType = 1;
    newInode.magicNum = 0x44;
 
-   //Traverse data table to find file name
    if (temp == NULL) {
-      //Error? resource table empty
+      //Resource table empty - ERROR?
    }
 
    while (temp != NULL) {
@@ -201,40 +201,24 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
       temp = temp->next;
    }
 
-   /*****Atempted to simplify this: see above***
-   if(temp != NULL && temp->fd == FD) {
-      strcpy(newInode.name, temp->filename;
-   }
-   else {
-      temp = temp->next; 
-      while (temp != NULL) {
-         if (temp->fd == FD) {
-            strcpy(newInode.name, temp->filename);
-            break;
-         }
-         temp = temp->next;
-      }
-   }
-   */
+   newInode.creationTime = time(NULL); 
+   newInode.lastAccess = time(NULL);
 
-   //Insert inode at freeblocksroot
-   //Point last inode to newInode
-   //Increment freeblocksroot by 1
-   //Start newInodes file extent at freeblocksroot
+   sb = readSuperBlock();
+      
+   newInode.startOfFile = sb.freeBlocksRoot + 1;
+   newInode.nextInode = sb.rootInodeBlockNum;
+   writeInode(sb.freeBlocksRoot, newInode);
+
+   //Insert new inode as root inode 
+   sb.rootInodeBlockNum = sb.freeBlocksRoot;
+   sb.freeBlocksRoot += 1;
+
+   writeSuperBlock(sb);
+
    //Write buffer data
    
 
-   //newInode.startOfFile
-   newInode.nextInode = -1; 
-   
-   newInode.creationTime = time(NULL); //Not positive about these timestamp
-   newInode.lastAccess = time(NULL);
-
-
-
-   //Append inode to list 
-   //Point start of inode file to freeblocksroot from superblock 
-   //Write contents of buffer to file extents
    return 0;
 }
 

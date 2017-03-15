@@ -12,11 +12,9 @@
 int openDisk(char *filename, int nBytes) {
    int fd;
 
-   if((nBytes == 0) && (access(filename, F_OK) != -1)){
-   		
-   		fd = open(filename, O_RDWR, 0660);
-
-        return fd;
+   if((nBytes == 0) && (access(filename, F_OK) != -1)){	
+   	fd = open(filename, O_RDWR, 0660);
+      return fd;
    }
    else if(nBytes < BLOCKSIZE) {
 	   /* Failure Returned */
@@ -26,7 +24,7 @@ int openDisk(char *filename, int nBytes) {
       /* Error - problems with opening the file */
       return -1;
    }
- 
+
    return fd;
 }
 

@@ -42,6 +42,7 @@ typedef struct DRT {
 	time_t lastAccess;
 } DRT;
 
+//Standard library functions
 int tfs_mkfs(char *filename, int nBytes);
 
 int tfs_mount(char *diskname);
@@ -62,6 +63,7 @@ int tfs_seek(fileDescriptor FD, int offset);
 
 int setUpFS(int fd, char *fname, int nBlocks);
 
+//Helper functions
 SuperBlock readSuperBlock();
 
 int writeSuperBlock(SuperBlock sb);
