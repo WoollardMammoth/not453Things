@@ -263,15 +263,15 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
          newExtent.nextBlock = -1;
       }
       else {
-         newExtent.nextBlock = readFreeBlock(FD, sb.freeBlocksRoot).nextFreeBlock;
+         newExtent.nextBlock = readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
       }
 
       memcpy(buffer + (extentDataSize*i), newExtent.data, extentDataSize);
 
-      nextFree = (readFreeBlock(FD, sb.freeBlocksRoot).nextFreeBlock);
-      writeFileExtent(FD, sb.freeBlocksRoot, &newExtent);
+      nextFree = (readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock);
+      writeFileExtent(mountedFD, sb.freeBlocksRoot, &newExtent);
       sb.freeBlocksRoot = nextFree;
-      writeSuperBlock(FD, &sb);     
+      writeSuperBlock(mountedFD, &sb);     
    } 
 
    return 0;
