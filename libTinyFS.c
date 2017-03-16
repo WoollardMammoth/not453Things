@@ -96,15 +96,6 @@ int tfs_unmount(void){
    return 1;
 }
 
-char *makeInode(char *name, time_t time){
-	char returnBuffer[BLOCKSIZE];
-
-	returnBuffer[0] = 2;
-	returnBuffer[1] = 0x44;
-	returnBuffer + 8 = name;
-	returnBuffer[] = 
-}
-
 
 /* Creates or Opens an existing file for reading and writing on the
 currently mounted file system. Creates a dynamic resource table entry
@@ -117,7 +108,6 @@ fileDescriptor tfs_openFile(char *name){
 	int present = 0;
 	char buffer[BLOCKSIZE];
 	char tempBuffer[BLOCKSIZE];
-	time_t currentTime;
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
 	char nextFreeBlock;
 
@@ -138,15 +128,13 @@ fileDescriptor tfs_openFile(char *name){
 		if(readBlock(fd,i,buffer) < 0){
 			/*Need to return Error*/
 		}
-		if(readBuffer[0] == 2){
+		if(buffer[0] == 2){
 			if(strcmp(name, &(buffer[4])) == 0){
 				present = 1;
 				break;
 			}
 		}
 	}
-
-	currentTime = time(NULL);
 
 	if(!present){
 		if(readBlock(fd, 0, buffer) < 0){
@@ -157,14 +145,15 @@ fileDescriptor tfs_openFile(char *name){
 			readBlock(fd,nextFreeBlock,tempBuffer);
 			buffer[3] = tempBuffer[2];
 			writeBlock(fd,0,buffer);
-			break;
 		}
 		else{
 			/* return error for no super node */
 		}
 	}
 
-	if(nextFreeBlock < 0)
+	if(nextFreeBlock < 0){
+      /* something */
+   }
 	return fd;
 }
 
@@ -214,7 +203,7 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
    if (mountedDisk == NULL) {
       //No mounted disk error
    }
-   if (FD < 0) {
+   if (FD < 0) { // Where is this coming from??
       //Invalid FD error
    }
 
@@ -284,7 +273,50 @@ int tfs_readByte(fileDescriptor FD, char *buffer);
 
 /* change the file pointer location to offset (absolute). Returns
 success/error codes.*/
-int tfs_seek(fileDescriptor FD, int offset);
+int tfs_seek(fileDescriptor FD, int offset){
+   char *filename = NULL;
+   DRT *cursor = resourceTable;
+   int fd, i; 
+   int numBlocks = DEFAULT_DISK_SIZE/BLOCKSIZE;
+   char buffer[BLOCKSIZE];
+   time_t cur;
+
+   if(mountedDisk){
+      fd = openDisk(mountedDisk,0);
+   }
+   else{
+      /* return no file mounted file error */
+   }
+
+   while(cursor != NULL){
+      if(cursor->fd == FD){
+         filename = malloc(sizeof(char) * 9);
+         strcpy(filename, cursor->filename);
+         break;
+      }
+      cursor = cursor->next;
+   }
+
+   if(filename == NULL){
+      /* return error */
+   }
+
+   for(i = 0; i < numBlocks; i++){
+      if(readBlock(fd,i,buffer) < 0){
+         /* error */
+      }
+      if(buffer[0] == 2){
+         if(!strcmp(filename, buffer + 2)){
+            buffer[13] = offset;
+            cur = time(NULL);
+            memcpy(buffer + 17, &cur, sizeof(time_t));
+            writeBlock(fd,i,buffer);
+            break;
+         }
+      }
+   }
+   return 1;
+}
 
 
 int setUpFS(int fd, char *fname, int nBlocks) {
@@ -347,6 +379,7 @@ int writeSuperBlock(fileDescriptor fd, SuperBlock *sb) {
 
 Inode readInode(fileDescriptor fd, char blockNum) {
    Inode in;
+
    readBlock(fd, blockNum, &in);
    return in;
 }
