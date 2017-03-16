@@ -82,4 +82,6 @@ int writeFileExtent(fileDescriptor fd, char blockNum, FileExtent *fe);
 
 int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb);
 
+FreeBlock readFreeBlock(fileDescriptor fd, char blockNum);
+
 #endif

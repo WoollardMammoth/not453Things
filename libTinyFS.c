@@ -196,10 +196,14 @@ int tfs_closeFile(fileDescriptor FD) {
 file’s content, to the file system. Previous content (if any) will be
 completely lost. Sets the file pointer to 0 (the start of file) when
 done. Returns success/error codes. */
-int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
+int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    Inode newInode;
+   FileExtent newExtent; 
    SuperBlock sb; 
    int mountedFD;
+   int extentDataSize = BLOCKSIZE - 3,
+       nextFree,
+       i;
    DRT *temp = resourceTable;
    //DRT *previous;
 
@@ -232,18 +236,42 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
 
    sb = readSuperBlock(mountedFD);
       
-   newInode.startOfFile = sb.freeBlocksRoot + 1;
+   newInode.startOfFile = readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
    newInode.nextInode = sb.rootInodeBlockNum;
    writeInode(mountedFD, sb.freeBlocksRoot, &newInode);
 
    //Insert new inode as root inode 
    sb.rootInodeBlockNum = sb.freeBlocksRoot;
-   sb.freeBlocksRoot += 1;
+   sb.freeBlocksRoot = newInode.startOfFile;
 
    writeSuperBlock(mountedFD, &sb);
 
    //Write buffer data
+   if (size % 253 == 0) {
+      numExtents = size/extentDataSize; 
+   }
+   else {
+      numExtents = (size/extentDataSize) + 1;
+   }
+
+   for (i = 0; i < numExtents; i++) {
+      newExtent.blockType = 3;
+      newExtent.magicNum = 0x44; 
    
+      if (i = numExtents-1) { 
+         newExtent.nextBlock = -1;
+      }
+      else {
+         newExtent.nextBlock = readFreeBlock(fd, sb.freeBlocksRoot).nextFreeBlock;
+      }
+
+      memcpy(buffer + (extentDataSize*i), newExtent.data, extentDataSize);
+
+      nextFree = readFreeBlock(fd, sb.freeBlocksRoot).nextFreeBlock;
+      writeFileExtent(fd, sb.freeBlocksRoot, newExtent);
+      sb.freeBlocksRoot = nextFree;
+      writeSuperBlock(fd, sb);     
+   } 
 
    return 0;
 }
