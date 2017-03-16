@@ -202,6 +202,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    SuperBlock sb; 
    int mountedFD;
    int extentDataSize = BLOCKSIZE - 3,
+       numExtents,
        nextFree,
        i;
    DRT *temp = resourceTable;
@@ -258,19 +259,19 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       newExtent.blockType = 3;
       newExtent.magicNum = 0x44; 
    
-      if (i = numExtents-1) { 
+      if (i == numExtents-1) { 
          newExtent.nextBlock = -1;
       }
       else {
-         newExtent.nextBlock = readFreeBlock(fd, sb.freeBlocksRoot).nextFreeBlock;
+         newExtent.nextBlock = readFreeBlock(FD, sb.freeBlocksRoot).nextFreeBlock;
       }
 
       memcpy(buffer + (extentDataSize*i), newExtent.data, extentDataSize);
 
-      nextFree = readFreeBlock(fd, sb.freeBlocksRoot).nextFreeBlock;
-      writeFileExtent(fd, sb.freeBlocksRoot, newExtent);
+      nextFree = (readFreeBlock(FD, sb.freeBlocksRoot).nextFreeBlock);
+      writeFileExtent(FD, sb.freeBlocksRoot, &newExtent);
       sb.freeBlocksRoot = nextFree;
-      writeSuperBlock(fd, sb);     
+      writeSuperBlock(FD, &sb);     
    } 
 
    return 0;
@@ -428,3 +429,8 @@ int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb) {
    return writeBlock(fd, blockNum, fb);
 }
 
+FreeBlock readFreeBlock(fileDescriptor fd, char blockNum) {
+   FreeBlock fb;
+   readBlock(fd, blockNum, &fb);
+   return fb;
+}
