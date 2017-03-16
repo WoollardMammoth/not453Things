@@ -209,10 +209,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    Inode newInode;
    FileExtent newExtent; 
    SuperBlock sb; 
-   int extentDataSize = BLOCKSIZE - 3,
-       nextFree,
-       i;
-   
+   int extentDataSize = BLOCKSIZE - 3, numExtents, i;
+   char nextFree;
+      
    DRT *temp = resourceTable;
    //DRT *previous;
 
@@ -242,17 +241,17 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    newInode.creationTime = time(NULL); 
    newInode.lastAccess = time(NULL);
 
-   sb = readSuperBlock(fd);
+   sb = readSuperBlock(FD);
       
-   newInode.startOfFile = readFreeBlock(fd, sb.freeBlocksRoot).nextFreeBlock;
+   newInode.startOfFile = readFreeBlock(FD, sb.freeBlocksRoot).nextFreeBlock;
    newInode.nextInode = sb.rootInodeBlockNum;
-   writeInode(sb.freeBlocksRoot, newInode);
+   writeInode(FD, sb.freeBlocksRoot, &newInode);
 
    //Insert new inode as root inode 
    sb.rootInodeBlockNum = sb.freeBlocksRoot;
    sb.freeBlocksRoot = newInode.startOfFile;
 
-   writeSuperBlock(sb);
+   writeSuperBlock(FD, &sb);
 
    //Write buffer data
    if (size % 253 == 0) {
@@ -266,19 +265,19 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       newExtent.blockType = 3;
       newExtent.magicNum = 0x44; 
    
-      if (i = numExtents-1) { 
+      if (i == numExtents-1) { 
          newExtent.nextBlock = -1;
       }
       else {
-         newExtent.nextBlock = readFreeBlock(fd, sb.freeBlocksRoot).nextFreeBlock;
+         newExtent.nextBlock = readFreeBlock(FD, sb.freeBlocksRoot).nextFreeBlock;
       }
 
       memcpy(buffer + (extentDataSize*i), newExtent.data, extentDataSize);
 
-      nextFree = readFreeBlock(fd, sb.freeBlocksRoot).nextFreeBlock;
-      writeFileExtent(fd, sb.freeBlocksRoot, newExtent);
+      nextFree = (readFreeBlock(FD, sb.freeBlocksRoot).nextFreeBlock);
+      writeFileExtent(FD, sb.freeBlocksRoot, &newExtent);
       sb.freeBlocksRoot = nextFree;
-      writeSuperBlock(fd, sb);     
+      writeSuperBlock(FD, &sb);     
    } 
 
    return 0;
