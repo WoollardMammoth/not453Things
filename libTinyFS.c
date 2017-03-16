@@ -110,7 +110,7 @@ fileDescriptor tfs_openFile(char *name){
 	char tempBuffer[BLOCKSIZE];
 	time_t currentTime;
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
-	char nextFreeBlock;
+	char nextFreeBlock = '\0';
 
 	if(mountedDisk == NULL){
 		//return no mounted disk error
