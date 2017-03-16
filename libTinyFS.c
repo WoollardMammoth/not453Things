@@ -251,14 +251,10 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    //Insert new inode as root inode 
    sb.rootInodeBlockNum = sb.freeBlocksRoot;
    sb.freeBlocksRoot = newInode.startOfFile;
-      //readFreeBlock(fd, newInode.startOfFile).nextFreeBlock; 
 
-   //Update superblock
    writeSuperBlock(sb);
 
    //Write buffer data
-   //Write one block worth of buffer to file extent pointed to by sb.freeBlocksRoot
-   //Increment sb.freeBlocksRoot 
    if (size % 253 == 0) {
       numExtents = size/extentDataSize; 
    }
