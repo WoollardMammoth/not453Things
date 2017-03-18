@@ -274,6 +274,8 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       writeSuperBlock(mountedFD, &sb);     
    } 
 
+   /********Still need to set file pointer to 0********/
+
    return 0;
 }
 
@@ -340,7 +342,29 @@ current file pointer location and incrementing it by one upon
 success. If the file pointer is already at the end of the file then
 tfs_readByte() should return an error and not increment the file
 pointer. */
-int tfs_readByte(fileDescriptor FD, char *buffer);
+int tfs_readByte(fileDescriptor FD, char *buffer) {
+   DRT *temp = resourceTable;
+   int mountedFD;
+
+   if (FD < 0) {
+      /*invalid FD error*/
+   } else if (temp == NULL) {
+      /*empty resource table error*/
+   }
+   
+   while (temp != NULL) {
+      if (temp->fd == FD) {
+         break;
+      }
+      temp = temp->next;
+   }
+
+   if (temp == NULL) {
+      /*FD not open error*/
+   }
+   mountedFD = openDisk(mountedDisk, 0);
+   return 0;/*success*/
+}
 
 /* change the file pointer location to offset (absolute). Returns
 success/error codes.*/
