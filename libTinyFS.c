@@ -128,11 +128,8 @@ fileDescriptor tfs_openFile(char *name){
 		if(readBlock(fd,i,buffer) < 0){
 			/*Need to return Error*/
 		}
-<<<<<<< HEAD
+      
 		if(buffer[0] == 2){
-=======
-      if(buffer[0] == 2){
->>>>>>> bc7a732353b453a9036a9ef8cd61a2b5642f18d6
 			if(strcmp(name, &(buffer[4])) == 0){
 				present = 1;
 				break;
