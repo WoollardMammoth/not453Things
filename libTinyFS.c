@@ -363,7 +363,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
       /*FD not open error*/
    }
    mountedFD = openDisk(mountedDisk, 0);
-
+   return 0;/*success*/
 }
 
 /* change the file pointer location to offset (absolute). Returns
