@@ -109,7 +109,7 @@ fileDescriptor tfs_openFile(char *name){
 	char buffer[BLOCKSIZE];
 	char tempBuffer[BLOCKSIZE];
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
-	char nextFreeBlock;
+	char nextFreeBlock = '\0';
 
 	if(mountedDisk == NULL){
 		//return no mounted disk error
@@ -128,7 +128,11 @@ fileDescriptor tfs_openFile(char *name){
 		if(readBlock(fd,i,buffer) < 0){
 			/*Need to return Error*/
 		}
+<<<<<<< HEAD
 		if(buffer[0] == 2){
+=======
+      if(buffer[0] == 2){
+>>>>>>> bc7a732353b453a9036a9ef8cd61a2b5642f18d6
 			if(strcmp(name, &(buffer[4])) == 0){
 				present = 1;
 				break;
@@ -155,6 +159,7 @@ fileDescriptor tfs_openFile(char *name){
       /* something */
    }
 	return fd;
+   return -1;
 }
 
 /* Closes the file, de-allocates all system/disk resources, and
@@ -194,9 +199,15 @@ int tfs_closeFile(fileDescriptor FD) {
 file’s content, to the file system. Previous content (if any) will be
 completely lost. Sets the file pointer to 0 (the start of file) when
 done. Returns success/error codes. */
-int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
+int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    Inode newInode;
-   
+   FileExtent newExtent; 
+   SuperBlock sb; 
+   int mountedFD;
+   int extentDataSize = BLOCKSIZE - 3,
+       numExtents,
+       nextFree,
+       i;
    DRT *temp = resourceTable;
    //DRT *previous;
 
@@ -207,13 +218,13 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
       //Invalid FD error
    }
 
+   mountedFD = openDisk(mountedDisk, 0);
    //Create new inode
    newInode.blockType = 1;
    newInode.magicNum = 0x44;
 
-   //Traverse data table to find file name
    if (temp == NULL) {
-      //Error? resource table empty
+      //Resource table empty - ERROR?
    }
 
    while (temp != NULL) {
@@ -224,45 +235,108 @@ int tfs_writeFile(fileDescriptor FD,char *buffer, int size) {
       temp = temp->next;
    }
 
-   /*****Atempted to simplify this: see above***
-   if(temp != NULL && temp->fd == FD) {
-      strcpy(newInode.name, temp->filename;
-   }
-   else {
-      temp = temp->next; 
-      while (temp != NULL) {
-         if (temp->fd == FD) {
-            strcpy(newInode.name, temp->filename);
-            break;
-         }
-         temp = temp->next;
-      }
-   }
-   */
-
-   //Insert inode at freeblocksroot
-   //Point last inode to newInode
-   //Increment freeblocksroot by 1
-   //Start newInodes file extent at freeblocksroot
-   //Write buffer data
-   
-
-   //newInode.startOfFile
-   newInode.nextInode = -1; 
-   
-   newInode.creationTime = time(NULL); //Not positive about these timestamp
+   newInode.creationTime = time(NULL); 
    newInode.lastAccess = time(NULL);
 
+   sb = readSuperBlock(mountedFD);
+      
+   newInode.startOfFile = readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
+   newInode.nextInode = sb.rootInodeBlockNum;
+   writeInode(mountedFD, sb.freeBlocksRoot, &newInode);
 
+   //Insert new inode as root inode 
+   sb.rootInodeBlockNum = sb.freeBlocksRoot;
+   sb.freeBlocksRoot = newInode.startOfFile;
 
-   //Append inode to list 
-   //Point start of inode file to freeblocksroot from superblock 
-   //Write contents of buffer to file extents
+   writeSuperBlock(mountedFD, &sb);
+
+   //Write buffer data
+   if (size % 253 == 0) {
+      numExtents = size/extentDataSize; 
+   }
+   else {
+      numExtents = (size/extentDataSize) + 1;
+   }
+
+   for (i = 0; i < numExtents; i++) {
+      newExtent.blockType = 3;
+      newExtent.magicNum = 0x44; 
+   
+      if (i == numExtents-1) { 
+         newExtent.nextBlock = -1;
+      }
+      else {
+         newExtent.nextBlock = readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
+      }
+
+      memcpy(buffer + (extentDataSize*i), newExtent.data, extentDataSize);
+
+      nextFree = (readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock);
+      writeFileExtent(mountedFD, sb.freeBlocksRoot, &newExtent);
+      sb.freeBlocksRoot = nextFree;
+      writeSuperBlock(mountedFD, &sb);     
+   } 
+
    return 0;
 }
 
 /* deletes a file and marks its blocks as free on disk. */
-int tfs_deleteFile(fileDescriptor FD);
+int tfs_deleteFile(fileDescriptor FD) {
+   DRT *temp = resourceTable;
+   int mountedFD;
+   SuperBlock sb;
+   char targetInodeOffset;
+   Inode in;
+   FileExtent fe;
+   FreeBlock fb;
+   char fileExtentOffset;
+
+   fb.blockType = 4;
+   fb.magicNum = 0x44;
+
+   if (FD < 0) {
+      /*invalid FD error*/
+   } else if (temp == NULL) {
+      /*empty resource table error*/
+   }
+   
+   while (temp != NULL) {
+      if (temp->fd == FD) {
+         break;
+      }
+      temp = temp->next;
+   }
+
+   if (temp == NULL) {
+      /*FD not open error*/
+   }
+   mountedFD = openDisk(mountedDisk, 0);
+   sb = readSuperBlock(mountedFD);
+   in = readInode(mountedFD, sb.rootInodeBlockNum);
+
+   while (strcmp(in.name, temp->filename) != 0) {
+      if (in.nextInode == -1) {
+         /*filename not found error*/
+      }
+      targetInodeOffset = in.nextInode;
+      in = readInode(mountedFD, in.nextInode);
+   }
+
+   /*in is the Inode of the file with file descriptor FD*/
+   fileExtentOffset = in.startOfFile;
+   fb.nextFreeBlock = sb.freeBlocksRoot;
+   sb.freeBlocksRoot = targetInodeOffset;
+   writeFreeBlock(mountedFD, sb.freeBlocksRoot, &fb);
+   while(fileExtentOffset != -1) {
+      fe = readFileExtent(mountedFD, fileExtentOffset);
+      fb.nextFreeBlock = sb.freeBlocksRoot;
+      sb.freeBlocksRoot = fileExtentOffset;
+      writeFreeBlock(mountedFD, sb.freeBlocksRoot, &fb);
+      fileExtentOffset = fe.nextBlock;
+   }
+   writeSuperBlock(mountedFD, &sb);
+   return 0;
+}
 
 /* reads one byte from the file and copies it to buffer, using the
 current file pointer location and incrementing it by one upon
@@ -402,3 +476,8 @@ int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb) {
    return writeBlock(fd, blockNum, fb);
 }
 
+FreeBlock readFreeBlock(fileDescriptor fd, char blockNum) {
+   FreeBlock fb;
+   readBlock(fd, blockNum, &fb);
+   return fb;
+}
