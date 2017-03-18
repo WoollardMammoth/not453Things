@@ -274,6 +274,8 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       writeSuperBlock(mountedFD, &sb);     
    } 
 
+   /********Still need to set file pointer to 0********/
+
    return 0;
 }
 
