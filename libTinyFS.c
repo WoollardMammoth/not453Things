@@ -384,13 +384,15 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    }
 
    byteOffset = in.fp;
-   in.fp++;
-   writeInode(mountedFD, inodeBlockNum, &in);
-
+   
    if (in.startOfFile == -1){
       /*no fileExtent data error*/
    }
    fe = readFileExtent(mountedFD, in.startOfFile);
+ 
+   if (byteOffset % 253 == 0 && fe.nextBlock == -1){
+      /*EOF error*/
+   }  
    while(byteOffset - currentByte > 253) {
       if (fe.nextBlock == -1){
          /*pointed OOB error*/
@@ -399,6 +401,9 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
       currentByte+= 253;
    }
    /*the byte we want is in fe.data*/
+   in.fp++;
+   writeInode(mountedFD, inodeBlockNum, &in);
+
    memcpy(buffer, &(fe.data[byteOffset-currentByte]), 1); 
    return 0;/*success*/
 }
