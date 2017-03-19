@@ -260,7 +260,6 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    int mountedFD;
    int extentDataSize = BLOCKSIZE - 3,
        numExtents, filePresent = 0,
-       nextFree,
        i;
 
    if (mountedDisk == NULL) {
@@ -280,8 +279,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    //Check DRT for open file
    while (temp != NULL) {
       if (temp->fd == FD) {
-         openFile = calloc(sizeof(char), strlen(temp->fileName) + 1);
-         strcpy(openFile, temp->fileName);
+         openFile = calloc(sizeof(char), strlen(temp->filename) + 1);
+         strcpy(openFile, temp->filename);
+         //strcpy(newInode.name, temp->filename);
          filePresent = 1;
          break;
       }
@@ -299,7 +299,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
 
    while (strcmp(curInode.name, openFile) != 0) {
       inodeIdx = curInode.nextInode;
-      curInode = readInode(mountedFd, curInode.nextInode);
+      curInode = readInode(mountedFD, curInode.nextInode);
    }
 
    curInode.fp = 0;
