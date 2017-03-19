@@ -17,4 +17,6 @@
 
 #define ERR_READDISK -207
 
+#define ERR_WRITEDISK -208
+
 #endif
