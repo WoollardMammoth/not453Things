@@ -20,7 +20,7 @@ typedef struct Inode {
    char fp;
    time_t creationTime;
    time_t lastAccess;
-   char empty[256 - 14 - (3*sizeof(time_t))];/*not sure why 3*sizeof(time_t)? [Should be 2]*/
+   char empty[BLOCKSIZE - 14 - (3*sizeof(time_t))];/*not sure why 3*sizeof(time_t)?*/
 } Inode;
 
 typedef struct FileExtent {
