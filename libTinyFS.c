@@ -535,7 +535,8 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    
    root.blockType = 2;
    root.magicNum = 0x44;
-   memcpy(root.name, fname, 9);
+   strncpy(root.name, fname, 9);
+   root.name[8] = '\0';
    root.creationTime = time(NULL);
    root.lastAccess = time(NULL);
    /*timestamp things*/
