@@ -292,7 +292,6 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
 
    //Find inode for file
    sb = readSuperBlock(mountedFD);
-   inodeIdx = sb.rootInodeBlockNum;
    curInode = readInode(mountedFD, sb.rootInodeBlockNum);
 
    while (strcmp(curInode.name, openFile) != 0) {
@@ -333,6 +332,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       }
 
       curInode.startOfFile = readSuperBlock(mountedFD).freeBlocksRoot;
+      writeInode(mountedFD, inodeIdx, &curInode);
    }
 
 
