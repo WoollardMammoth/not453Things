@@ -102,7 +102,7 @@ currently mounted file system. Creates a dynamic resource table entry
 for the file, and returns a file descriptor (integer) that can be
 used to reference this file while the filesystem is mounted. */
 fileDescriptor tfs_openFile(char *name){
-	DRT *temp = resourceTable;
+	DRT *newDRT, *tempDRT = resourceTable;
 	fileDescriptor fd;
 	int i;
 	int present = 0;
@@ -110,16 +110,18 @@ fileDescriptor tfs_openFile(char *name){
 	char tempBuffer[BLOCKSIZE];
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
 	char nextFreeBlock = '\0';
+   time_t = cur;
+   Inode newInode;
 
 	if(mountedDisk == NULL){
 		//return no mounted disk error
 	}
 	else{
-		while(temp != NULL){
-			if(strcmp(temp->filename,name) == 0){
-				return temp->fd;
+		while(tempDRT != NULL){
+			if(strcmp(tempDRT->filename,name) == 0){
+				return tempDRT->fd;
 			}
-			temp = temp->next;
+			tempDRT = tempDRT->next;
 		}
 		fd = openDisk(mountedDisk, 0);
 	}
@@ -137,10 +139,14 @@ fileDescriptor tfs_openFile(char *name){
 		}
 	}
 
+   cur = time(NULL);
+
 	if(!present){
+      /* Reading the Superblock */ 
 		if(readBlock(fd, 0, buffer) < 0){
 			/* return error */
 		}
+      /* Taking data out of the superblock */
 		if(buffer[0] == 1){
 			nextFreeBlock = buffer[3];
 			readBlock(fd,nextFreeBlock,tempBuffer);
@@ -148,15 +154,56 @@ fileDescriptor tfs_openFile(char *name){
 			writeBlock(fd,0,buffer);
 		}
 		else{
-			/* return error for no super node */
+			/* return error for no super block */
 		}
-	}
 
-	if(nextFreeBlock < 0){
-      /* something */
+
+      /*
+      * This makes a new node at the location specified by nextFreeBlock 
+      * and updates the root inode to point at this inode
+      */
+      newInode.type = 2;
+      newInode.magicNum = 0x44;
+      memcpy(newInode.name, name, 8);
+      (newInode.name)[9] = "\n";
+      newInode.startOfFile = -1;
+      newInode.nextInode = buffer[2];
+      buffer[2] = nextFreeBlock;
+      writeBlock(fd,0,buffer);
+      newInode.fp = 0;
+      newInode.creationTime = cur;
+      newInode.lastAccess = cur;
+
+      /* This writes the new Inode to the disk */
+      writeInode(fd,nextFreeBlock,&newInode);
+       
+	}
+   else{
+      newInode = readInode(fd,i);
+      newInode.lastAccess = cur;
+      writeInode(fd,i,&newInode);
    }
-	return fd;
-   return -1;
+
+   tempDRT = NULL;
+
+   tempDRT = calloc(1, sizeof(DRT));
+   tempDRT->name = newInode.name;
+   tempDRT->creationTime = cur;
+   tempDRT->lastAccess = cur;
+
+   if(resourceTable == NULL){
+      tempDRT->fd = 1;
+      tempDRT->next = NULL;
+   }
+   else{
+      tempDRT->fd = resourceTable->fd + 1;
+      tempDRT->next = resourceTable;
+      resourceTable = tempDRT;
+   }
+
+   close(fd);
+
+	return tempDRT->fd;
 }
 
 /* Closes the file, de-allocates all system/disk resources, and
