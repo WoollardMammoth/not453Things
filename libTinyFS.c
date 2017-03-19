@@ -282,7 +282,6 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       if (temp->fd == FD) {
          openFile = calloc(sizeof(char), strlen(temp->fileName) + 1);
          strcpy(openFile, temp->fileName);
-         //strcpy(newInode.name, temp->filename);
          filePresent = 1;
          break;
       }
