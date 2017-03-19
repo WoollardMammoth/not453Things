@@ -8,6 +8,7 @@
 #include <time.h>
 #include "tinyFS.h"
 #include "libDisk.h"
+#include "libTinyFS.h"
 
 int openDisk(char *filename, int nBytes) {
    int fd;
@@ -35,7 +36,9 @@ int readBlock(int disk, int bNum, void *block) {
    
    /*skip disk to where we want*/
    if (-1 == lseek(disk, byteOffset, 0)) {
-      /*lseek failed*/
+      if(TEST){
+         printf("TEST: Lseek has failed in readBlock\n");
+      }
       if (errno == EBADF) {
          /*ERROR -- file descriptor is not open*/
          return -1;

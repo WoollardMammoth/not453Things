@@ -6,8 +6,7 @@
 #include "tinyFS.h"
 #include "libTinyFS.h"
 #include "libDisk.h"
-
-#define TEST 1
+#include "TinyFS_errno.h"
 
 static char *mountedDisk = NULL; // This is the name of the disk that is mounted
 static DRT *resourceTable = NULL;
@@ -22,9 +21,9 @@ static DRT *resourceTable = NULL;
  */
 int tfs_mkfs(char *filename, int nBytes) {
    int fd, numBlocks = 0;
-   if ((fd = openDisk(filename, nBytes)) != 0)
+   if ((fd = openDisk(filename, nBytes)) < 0)
    {
-      /*ERROR THINGS*/
+      return ERR_BADFD;
    } else {
       numBlocks = nBytes/BLOCKSIZE;/*by the magic of integer division*/
       return setUpFS(fd, filename, numBlocks);
@@ -48,21 +47,27 @@ int tfs_mount(char *diskname){
    fileDescriptor fd;
    int readStatus;
 
+   if(TEST){
+      printf("TEST: Attempting to mount disk '%s'\n", diskname);
+   }
 
    if(mountedDisk){
+      if(TEST){
+         printf("TEST: There is a disk already mounted. Unmounting '%s'\n", mountedDisk);
+      }
       tfs_unmount();
    }
 
    if(0 > (fd = openDisk(diskname, 0))){
-      //Throw bad fs error
+      return ERR_BADFS;
    }
 
    if(0 > (readStatus = readBlock(fd, 0, buff))){
-      // Throw error that it could not read the disk
+      return ERR_READDISK; // Throw error that it could not read the disk
    }
 
    if(buff[1] != 0x44){
-      //Throw error that ut is a bad fs
+      return ERR_BADMAGICNUM;
    }
 
    
@@ -81,7 +86,10 @@ int tfs_mount(char *diskname){
 int tfs_unmount(void){
 
    if(mountedDisk == NULL){
-      //throw file already unmounted error
+      if(TEST){
+         printf("TEST: There is no disk to unmount\n");
+      }
+      return ERR_NOMOUNTEDDISK;
    }
 
    if(TEST){
@@ -126,7 +134,10 @@ fileDescriptor tfs_openFile(char *name){
    }
 
 	if(mountedDisk == NULL){
-		//return no mounted disk error
+      if(TEST){
+         printf("TEST: There is no mounted disk\n");
+      }
+		return ERR_NOMOUNTEDDISK;
 	}
 	else{
 		while(tempDRT != NULL){
@@ -144,7 +155,7 @@ fileDescriptor tfs_openFile(char *name){
 
 	for(i = 0; i < numBlocks && !present; i++){
 		if(readBlock(fd,i,buffer) < 0){
-			/*Need to return Error*/
+			return ERR_NOSPACE;
 		}
       /* Check to see if it is an Inode */
 		if(buffer[0] == 2){
@@ -178,7 +189,7 @@ fileDescriptor tfs_openFile(char *name){
 			writeBlock(fd,0,buffer);
 		}
 		else{
-			/* return error for no super block */
+			return ERR_BADFS;
 		}
 
       if(TEST){
@@ -220,7 +231,7 @@ fileDescriptor tfs_openFile(char *name){
 
    if(TEST){
          printf("TEST: Creating a new DRT entry for '%s'\n", name);
-      }
+   }
 
    newDRT = calloc(1, sizeof(DRT));
    strcpy(newDRT->filename, newInode.name);
@@ -229,16 +240,10 @@ fileDescriptor tfs_openFile(char *name){
 
    /* Checks to see if the DRT table is empty, and assigns the correct
    * file descriptor */
-   if(resourceTable == NULL){
-      newDRT->fd = 1;
-      newDRT->next = NULL;
-   }
-   else{
-      newDRT->fd = resourceTable->fd + 1;
-      newDRT->next = resourceTable;
-      resourceTable = newDRT;
-   }
-
+   newDRT->fd = resourceTable->fd + 1;
+   newDRT->next = resourceTable;
+   resourceTable = newDRT;
+   
    if(TEST){
       printf("TEST: '%s' was assigned FD '%d'\n", name, newDRT->fd);
    }
@@ -260,9 +265,9 @@ int tfs_closeFile(fileDescriptor FD) {
    }
 
    if(mountedDisk == NULL) {
-      /*return not mounted error*/
+      return ERR_FILENOTOPEN;
    } else if (FD < 0) {
-      /* return invalid FD error*/
+      return ERR_BADFD;
    }
    
    if(temp != NULL && temp->fd == FD) {/*first entry is a match*/
@@ -293,7 +298,7 @@ int tfs_closeFile(fileDescriptor FD) {
    if(TEST){
       printf("TEST: Cannot close FD '%d,' it was not in open\n", FD);
    }
-   return -1; /*FD not here/valid*/
+   return ERR_FILENOTOPEN; /*FD not here/valid*/
 }
 
 /* Writes buffer ‘buffer’ of size ‘size’, which represents an entire
@@ -317,17 +322,16 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    }       
 
    if (mountedDisk == NULL) {
-      //No mounted disk error
+      return ERR_NOMOUNTEDDISK;
    }
    if (FD < 0) { // Where is this coming from??
-      //Invalid FD error
+      return ERR_BADFD;
    }
 
    mountedFD = openDisk(mountedDisk, 0);
 
    if (temp == NULL) {
-      //Resource table empty - ERROR?
-      //File is not open for writing 
+      return ERR_BADFILE; 
    }
 
    //Check DRT for open file
@@ -345,7 +349,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    }
    
    if (!filePresent) {
-      //Error file not open for writing
+      return ERR_BADFILE;
    }
 
    //Find inode for file
@@ -442,9 +446,9 @@ int tfs_deleteFile(fileDescriptor FD) {
    }
 
    if (FD < 0) {
-      /*invalid FD error*/
+      return ERR_BADFD;
    } else if (temp == NULL) {
-      /*empty resource table error*/
+      return ERR_NOMOUNTEDDISK;
    }
    
    while (temp != NULL) {
@@ -461,7 +465,7 @@ int tfs_deleteFile(fileDescriptor FD) {
    }
 
    if (temp == NULL) {
-      /*FD not open error*/
+      return ERR_BADFILE;
    }
    mountedFD = openDisk(mountedDisk, 0);
    sb = readSuperBlock(mountedFD);
@@ -469,7 +473,7 @@ int tfs_deleteFile(fileDescriptor FD) {
 
    while (strcmp(in.name, temp->filename) != 0) {
       if (in.nextInode == -1) {
-         /*filename not found error*/
+         return ERR_BADFILE;
       }
       targetInodeOffset = in.nextInode;
       in = readInode(mountedFD, in.nextInode);
@@ -521,9 +525,9 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    byteOffset = -1;
    currentByte = 0;
    if (FD < 0) {
-      /*invalid FD error*/
+      return ERR_BADFD;
    } else if (temp == NULL) {
-      /*empty resource table error*/
+      return ERR_NOMOUNTEDDISK;
    }
    
    while (temp != NULL) {
@@ -540,7 +544,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
       if(TEST){
          printf("TEST: The file with FD '%d' was not found in the Dynamic Resource Table\n", FD);
       }
-      /*FD not open error*/
+      return ERR_BADFILE;
    }
    mountedFD = openDisk(mountedDisk, 0);
 
@@ -549,7 +553,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
 
    while (strcmp(in.name, temp->filename) != 0) {
       if (in.nextInode == -1) {
-         /*filename not found error*/
+         return ERR_BADFILE;
       }
       inodeBlockNum = in.nextInode;
       in = readInode(mountedFD, in.nextInode);
@@ -605,7 +609,7 @@ int tfs_seek(fileDescriptor FD, int offset){
       fd = openDisk(mountedDisk,0);
    }
    else{
-      /* return no file mounted file error */
+      return ERR_NOMOUNTEDDISK;
    }
 
    while(cursor != NULL){
@@ -624,7 +628,7 @@ int tfs_seek(fileDescriptor FD, int offset){
       if(TEST){
          printf("TEST: The file with FD '%d' was not found in the Dynamic Resource Table\n", FD);
       }
-      /* return error */
+      return ERR_BADFILE;
    }
 
    for(i = 0; i < numBlocks; i++){
