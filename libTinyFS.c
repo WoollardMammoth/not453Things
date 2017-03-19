@@ -21,7 +21,7 @@ static DRT *resourceTable = NULL;
  * specified success/error code. 
  */
 int tfs_mkfs(char *filename, int nBytes) {
-   int fd, numBlocks;
+   int fd, numBlocks = 0;
    if ((fd = openDisk(filename, nBytes)) != 0)
    {
       /*ERROR THINGS*/
@@ -151,7 +151,7 @@ fileDescriptor tfs_openFile(char *name){
 			if(strcmp(name, &(buffer[4])) == 0){
 				present = 1;
 				if(TEST){
-               printf("TEST: '%s' was found on the mounted disk\n");
+               printf("TEST: '%s' was found on the mounted disk\n", name);
             }
             break;
 			}
@@ -337,7 +337,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
          strcpy(openFile, temp->filename);
          filePresent = 1;
          if(TEST){
-            printf("TEST: FD '%d' is an open file with name %s\n", fd. temp->filename);
+            printf("TEST: FD '%d' is an open file with name %s\n", FD, temp->filename);
          }
          break;
       }
@@ -415,7 +415,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    }
 
    if(TEST){
-      printf("TEST: Compled writing '%d' bytes of data to %s\n",
+      printf("TEST: Completed writing '%d' bytes of data to %s\n",
          size, temp->filename);
    } 
 
@@ -612,12 +612,18 @@ int tfs_seek(fileDescriptor FD, int offset){
       if(cursor->fd == FD){
          filename = malloc(sizeof(char) * 9);
          strcpy(filename, cursor->filename);
+         if(TEST){
+            printf("TEST: The file with FD '%d' was found in the Dynamic Resource Table\n", FD);
+         }
          break;
       }
       cursor = cursor->next;
    }
 
    if(filename == NULL){
+      if(TEST){
+         printf("TEST: The file with FD '%d' was not found in the Dynamic Resource Table\n", FD);
+      }
       /* return error */
    }
 
