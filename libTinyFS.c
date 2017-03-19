@@ -28,10 +28,6 @@ int tfs_mkfs(char *filename, int nBytes) {
       numBlocks = nBytes/BLOCKSIZE;/*by the magic of integer division*/
       return setUpFS(fd, filename, numBlocks);
    }
-   if(TEST){
-      printf("TEST: The file  system '%s' was opened with fd '%d' and size of '%d' blocks\n", 
-         filename, fd, numBlocks);
-   }
    return 0;
 }
 
@@ -117,7 +113,7 @@ currently mounted file system. Creates a dynamic resource table entry
 for the file, and returns a file descriptor (integer) that can be
 used to reference this file while the filesystem is mounted. */
 fileDescriptor tfs_openFile(char *name){
-	DRT *newDRT = NULL, 
+	DRT *newDRT, 
       *tempDRT = resourceTable;
 	fileDescriptor fd;
 	int i;
@@ -127,7 +123,8 @@ fileDescriptor tfs_openFile(char *name){
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
 	char nextFreeBlock = '\0';
    time_t cur;
-   Inode newInode;
+   Inode newInode, tempInode;
+   SuperBlock superBlock;
 
    if(TEST){
       printf("TEST: Attempting to open file '%s'\n", name);
@@ -153,12 +150,21 @@ fileDescriptor tfs_openFile(char *name){
 		fd = openDisk(mountedDisk, 0);
 	}
 
+   if(TEST){
+      printf("TEST: The FD for the mounted disk is '%d'\n", fd);
+   }
+
 	for(i = 0; i < numBlocks && !present; i++){
-		if(readBlock(fd,i,buffer) < 0){
+		
+      if((tempInode = readInode(fd, i)).blockType < 0){
+         printf("%d\n", i);
+         if(TEST){
+            printf("TEST: There is no more space on the disk\n");
+         }
 			return ERR_NOSPACE;
 		}
       /* Check to see if it is an Inode */
-		if(buffer[0] == 2){
+		if(tempInode.blockType == 2){
 			if(strcmp(name, &(buffer[4])) == 0){
 				present = 1;
 				if(TEST){
@@ -178,15 +184,15 @@ fileDescriptor tfs_openFile(char *name){
       }
 
       /* Reading the Superblock */ 
-		if(readBlock(fd, 0, buffer) < 0){
-			/* return error */
+		if((superBlock = readSuperBlock(fd)).blockType < 0){
+			return ERR_BADFS;
 		}
       /* Taking data out of the superblock */
-		if(buffer[0] == 1){
-			nextFreeBlock = buffer[3];
+		if(superBlock.blockType == 1){
+			nextFreeBlock = superBlock.freeBlocksRoot;
 			readBlock(fd,nextFreeBlock,tempBuffer);
-			buffer[3] = tempBuffer[2];
-			writeBlock(fd,0,buffer);
+			superBlock.freeBlocksRoot = tempBuffer[2];
+			writeSuperBlock(fd,&superBlock);
 		}
 		else{
 			return ERR_BADFS;
@@ -194,7 +200,7 @@ fileDescriptor tfs_openFile(char *name){
 
       if(TEST){
          printf("TEST: Creating a new Inode at location '%d' on the mounted disk\n", nextFreeBlock);
-         printf("TEST: The new next free block is '%c'\n", tempBuffer[3]);
+         printf("TEST: The new next free block is '%d'\n", superBlock.freeBlocksRoot);
       }
 
       /*
@@ -233,14 +239,21 @@ fileDescriptor tfs_openFile(char *name){
          printf("TEST: Creating a new DRT entry for '%s'\n", name);
    }
 
-   newDRT = calloc(1, sizeof(DRT));
-   strcpy(newDRT->filename, newInode.name);
+   newDRT = calloc(1,sizeof(DRT));
+
+   strcpy(newDRT->filename, name);
    newDRT->creation = cur;
    newDRT->lastAccess = cur;
 
+
    /* Checks to see if the DRT table is empty, and assigns the correct
    * file descriptor */
-   newDRT->fd = resourceTable->fd + 1;
+   if(resourceTable == NULL){
+      newDRT->fd = fd + 1;
+   }
+   else{
+      newDRT->fd = resourceTable->fd + 1;
+   }
    newDRT->next = resourceTable;
    resourceTable = newDRT;
    
@@ -250,7 +263,7 @@ fileDescriptor tfs_openFile(char *name){
 
    close(fd);
 
-	return tempDRT->fd;
+	return newDRT->fd;
 }
 
 /* Closes the file, de-allocates all system/disk resources, and
@@ -273,14 +286,13 @@ int tfs_closeFile(fileDescriptor FD) {
    if(temp != NULL && temp->fd == FD) {/*first entry is a match*/
       resourceTable = temp->next;
       free(temp);
-      close(FD);
       if(TEST){
          printf("TEST: FD '%d' was closed\n", FD);
       }
+      close(FD);
       return 0;/*success*/
    } else {
       previous = temp;
-      temp = temp->next;
       while (temp != NULL){
          if (temp->fd == FD) {
             previous->next = temp->next;
@@ -291,12 +303,13 @@ int tfs_closeFile(fileDescriptor FD) {
             }
             return 0;/*success*/
          }
+         previous = temp;
          temp = temp->next;
       }
    }
 
    if(TEST){
-      printf("TEST: Cannot close FD '%d,' it was not in open\n", FD);
+      printf("TEST: Cannot close FD '%d,' it was not open\n", FD);
    }
    return ERR_FILENOTOPEN; /*FD not here/valid*/
 }
@@ -695,6 +708,12 @@ int setUpFS(int fd, char *fname, int nBlocks) {
          return -13; /*writing free block failed*/
       }
    }
+
+   if(TEST){
+      printf("TEST: The file  system '%s' was opened with fd '%d' and size of '%d' blocks\n", 
+         fname, fd, nBlocks);
+   }
+
    return 0; /*success*/
 }
 
@@ -702,7 +721,9 @@ int setUpFS(int fd, char *fname, int nBlocks) {
 /*----------Method stubs for read/write structs----------*/
 SuperBlock readSuperBlock(fileDescriptor fd){ 
    SuperBlock sb;
-   readBlock(fd, 0, &sb);
+   if(readBlock(fd, 0, &sb) < 0){
+      sb.blockType = -1;
+   }
    return sb;
 }
 int writeSuperBlock(fileDescriptor fd, SuperBlock *sb) {
@@ -711,8 +732,9 @@ int writeSuperBlock(fileDescriptor fd, SuperBlock *sb) {
 
 Inode readInode(fileDescriptor fd, char blockNum) {
    Inode in;
-
-   readBlock(fd, blockNum, &in);
+   if(readBlock(fd, blockNum, &in) < 0){
+      in.blockType = -1;
+   }
    return in;
 }
 
@@ -722,7 +744,9 @@ int writeInode(fileDescriptor fd, char blockNum, Inode *in) {
 
 FileExtent readFileExtent(fileDescriptor fd, char blockNum) {
    FileExtent fe;
-   readBlock(fd, blockNum, &fe);
+   if(readBlock(fd, blockNum, &fe)){
+      fe.blockType = -1;
+   }
    return fe;
 }
 
@@ -736,6 +760,8 @@ int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb) {
 
 FreeBlock readFreeBlock(fileDescriptor fd, char blockNum) {
    FreeBlock fb;
-   readBlock(fd, blockNum, &fb);
+   if(readBlock(fd, blockNum, &fb) < 0){
+      fb.blockType = -1;
+   }
    return fb;
 }

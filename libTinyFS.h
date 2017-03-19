@@ -3,7 +3,7 @@
 
 #include "tinyFS.h"
 
-#define TEST 1
+#define TEST 0
 
 typedef struct SuperBlock {
    char blockType;
@@ -42,7 +42,7 @@ typedef struct FreeBlock {
 typedef struct DRT {
 	struct DRT *next;
 	fileDescriptor fd;
-	char *filename;
+	char filename[9];
 	time_t creation;
 	time_t lastAccess;
 } DRT;

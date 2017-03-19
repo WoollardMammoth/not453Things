@@ -47,6 +47,9 @@ int readBlock(int disk, int bNum, void *block) {
       return -2;
    }
    if (read(disk, block, BLOCKSIZE) != BLOCKSIZE) {
+      if(TEST){
+         printf("TEST: Could not read entire block\n");
+      }
       /*ERROR -- Could not read an entire block*/
       return -3;
    } else {

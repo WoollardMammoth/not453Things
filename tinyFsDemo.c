@@ -18,15 +18,16 @@
 
 int main() {
    int curTest;
-   char diskName[] = "diskX.dsk";
+   char diskName[] = "disk0.dsk";
    int err;
+   int fd, tempFd;
 
-   printf(">>> DEMO FOR TinyFS <<<\n\n");
+   printf("\n\n>>> DEMO FOR TinyFS <<<\n\n");
  
    for (curTest = 0; curTest < NUM_TESTS; curTest++) {
-      diskName[4] = '0' + curTest;
+      //diskName[4] = '0' + curTest;
 
-   	 if ((err = tfs_mkfs(diskName, BLOCKSIZE * 5)) < 0) {
+   	 if ((err = tfs_mkfs(diskName, BLOCKSIZE * DEFAULT_DISK_SIZE)) < 0) {
          printf("> DEMO: Failed to create file system %s with error code '%d'\n", diskName, err);
          //Display errno
       }
@@ -35,7 +36,7 @@ int main() {
 
          if (curTest == 0) {
 
-         	printf("DEMO: TEST 1\n\n");
+         	printf("\n\nDEMO: TEST 1\n\n");
          	printf("-> Functionality\n");
          	printf("-> 1. Attempt to mount a file\n");
          	printf("-> 2. Attempt to unmount a file\n");
@@ -85,6 +86,33 @@ int main() {
         } 
         /* Test open file and close file */
 	    if (curTest == 1) {
+
+	    	printf("\n\nDEMO: TEST 2\n\n");
+         	printf("-> Functionality\n");
+         	printf("-> 1. Attempt to close a file that is not open\n");
+         	printf("-> 2. Attempt to open a file a file\n");
+         	printf("-> 3. Attempt to close a file that is open\n\n");
+
+	    	if((fd = tfs_closeFile(100)) < 0){
+	    		printf("> DEMO: Unable to close the file with FD '100' with error code %d\n", fd);
+	    	}
+	    	else{
+	    		printf("> DEMO Successfully closed file with FD '100'\n");
+	    	}
+
+	    	if((fd = tfs_openFile("newFile")) < 0){
+	    		printf("> DEMO: Failed to open 'newFile' with error code '%d'\n", fd);
+	    	}
+	    	else{
+	    		printf("> DEMO: File 'newFile' was opened with FD '%d'\n", fd);
+	    	}
+
+	    	if((tempFd = tfs_closeFile(fd)) < 0){
+	    		printf("> DEMO: Unable to close the file with error code %d\n", tempFd);
+	    	}
+	    	else{
+	    		printf("> DEMO: Successfully closed file with FD '%d'\n", fd);
+	    	}
 	    }
 
 	    if (curTest == 2) {
