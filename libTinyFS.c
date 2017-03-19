@@ -36,7 +36,7 @@ int tfs_mkfs(char *filename, int nBytes) {
    return 0;
 }
 
-/* tfs_mount(char *diskname) ​“mounts” a TinyFS file system located
+/* tfs_mount(char *diskname) “mounts” a TinyFS file system located
 within ‘diskname’ unix file. tfs_unmount(void) “unmounts” the
 currently mounted file system. As part of the mount operation,
 tfs_mount should verify the file system is the correct type. Only one
@@ -44,11 +44,9 @@ file system may be mounted at a time. Use tfs_unmount to cleanly
 unmount the currently mounted file system. Must return a specified
 success/error code. */
 int tfs_mount(char *diskname){
-
    char buff[BLOCKSIZE];
    fileDescriptor fd;
    int readStatus;
-
 
 
    if(mountedDisk){
@@ -82,7 +80,7 @@ int tfs_mount(char *diskname){
 
 int tfs_unmount(void){
 
-   if(mountedDisk){
+   if(mountedDisk == NULL){
       //throw file already unmounted error
    }
 
@@ -92,6 +90,11 @@ int tfs_unmount(void){
 
    free(mountedDisk); 
    mountedDisk = NULL;
+
+   //Clear DRT 
+   if (resourceTable != NULL) {
+      resourceTable = NULL;
+   }
 
    return 1;
 }
@@ -249,11 +252,10 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    SuperBlock sb; 
    int mountedFD;
    int extentDataSize = BLOCKSIZE - 3,
-       numExtents,
+       numExtents, filePresent = 0,
        nextFree,
        i;
    DRT *temp = resourceTable;
-   //DRT *previous;
 
    if (mountedDisk == NULL) {
       //No mounted disk error
@@ -269,14 +271,20 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
 
    if (temp == NULL) {
       //Resource table empty - ERROR?
+      //File is not open for writing 
    }
 
    while (temp != NULL) {
       if (temp->fd == FD) {
          strcpy(newInode.name, temp->filename);
+         filePresent = 1;
          break;
       }
       temp = temp->next;
+   }
+   
+   if (!filePresent) {
+      //Error file not open for writing
    }
 
    newInode.creationTime = time(NULL); 
@@ -286,6 +294,12 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       
    newInode.startOfFile = readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
    newInode.nextInode = sb.rootInodeBlockNum;
+
+   //Make sure empty space at end of block is 0
+   for (i = 0; i < sizeof(newInode.empty); i++) {
+     newInode.empty[i] = 0;
+   }
+      
    writeInode(mountedFD, sb.freeBlocksRoot, &newInode);
 
    //Insert new inode as root inode 
@@ -392,7 +406,15 @@ pointer. */
 int tfs_readByte(fileDescriptor FD, char *buffer) {
    DRT *temp = resourceTable;
    int mountedFD;
+   SuperBlock sb;
+   Inode in;
+   FileExtent fe;
+   char inodeBlockNum;
+   int byteOffset;
+   int currentByte;
 
+   byteOffset = -1;
+   currentByte = 0;
    if (FD < 0) {
       /*invalid FD error*/
    } else if (temp == NULL) {
@@ -410,6 +432,40 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
       /*FD not open error*/
    }
    mountedFD = openDisk(mountedDisk, 0);
+
+   sb = readSuperBlock(mountedFD);
+   in = readInode(mountedFD, sb.rootInodeBlockNum);
+
+   while (strcmp(in.name, temp->filename) != 0) {
+      if (in.nextInode == -1) {
+         /*filename not found error*/
+      }
+      inodeBlockNum = in.nextInode;
+      in = readInode(mountedFD, in.nextInode);
+   }
+
+   byteOffset = in.fp;
+   
+   if (in.startOfFile == -1){
+      /*no fileExtent data error*/
+   }
+   fe = readFileExtent(mountedFD, in.startOfFile);
+ 
+   if (byteOffset % 253 == 0 && fe.nextBlock == -1){
+      /*EOF error*/
+   }  
+   while(byteOffset - currentByte > 253) {
+      if (fe.nextBlock == -1){
+         /*pointed OOB error*/
+      }
+      readFileExtent(mountedFD, fe.nextBlock);
+      currentByte+= 253;
+   }
+   /*the byte we want is in fe.data*/
+   in.fp++;
+   writeInode(mountedFD, inodeBlockNum, &in);
+
+   memcpy(buffer, &(fe.data[byteOffset-currentByte]), 1); 
    return 0;/*success*/
 }
 
@@ -476,6 +532,8 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    root.blockType = 2;
    root.magicNum = 0x44;
    memcpy(root.name, fname, 9);
+   root.creationTime = time(NULL);
+   root.lastAccess = time(NULL);
    /*timestamp things*/
 
    everythingElse.blockType = 4;
