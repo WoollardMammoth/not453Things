@@ -105,25 +105,27 @@ currently mounted file system. Creates a dynamic resource table entry
 for the file, and returns a file descriptor (integer) that can be
 used to reference this file while the filesystem is mounted. */
 fileDescriptor tfs_openFile(char *name){
-	DRT *temp = resourceTable;
+	DRT *newDRT = NULL, 
+      *tempDRT = resourceTable;
 	fileDescriptor fd;
 	int i;
 	int present = 0;
 	char buffer[BLOCKSIZE];
 	char tempBuffer[BLOCKSIZE];
-	time_t currentTime;
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
 	char nextFreeBlock = '\0';
+   time_t cur;
+   Inode newInode;
 
 	if(mountedDisk == NULL){
 		//return no mounted disk error
 	}
 	else{
-		while(temp != NULL){
-			if(strcmp(temp->filename,name) == 0){
-				return temp->fd;
+		while(tempDRT != NULL){
+			if(strcmp(tempDRT->filename,name) == 0){
+				return tempDRT->fd;
 			}
-			temp = temp->next;
+			tempDRT = tempDRT->next;
 		}
 		fd = openDisk(mountedDisk, 0);
 	}
@@ -132,7 +134,8 @@ fileDescriptor tfs_openFile(char *name){
 		if(readBlock(fd,i,buffer) < 0){
 			/*Need to return Error*/
 		}
-      if(buffer[0] == 2){
+      /* Check to see if it is an Inode */
+		if(buffer[0] == 2){
 			if(strcmp(name, &(buffer[4])) == 0){
 				present = 1;
 				break;
@@ -140,12 +143,14 @@ fileDescriptor tfs_openFile(char *name){
 		}
 	}
 
-	currentTime = time(NULL);
+   cur = time(NULL);
 
 	if(!present){
+      /* Reading the Superblock */ 
 		if(readBlock(fd, 0, buffer) < 0){
 			/* return error */
 		}
+      /* Taking data out of the superblock */
 		if(buffer[0] == 1){
 			nextFreeBlock = buffer[3];
 			readBlock(fd,nextFreeBlock,tempBuffer);
@@ -153,13 +158,59 @@ fileDescriptor tfs_openFile(char *name){
 			writeBlock(fd,0,buffer);
 		}
 		else{
-			/* return error for no super node */
+			/* return error for no super block */
 		}
-	}
 
-	if(nextFreeBlock < 0)
-	return fd;
-   return -1;
+
+      /*
+      * This makes a new node at the location specified by nextFreeBlock 
+      * and updates the root inode to point at this inode
+      */
+      newInode.blockType = 2;
+      newInode.magicNum = 0x44;
+      memcpy(newInode.name, name, 8);
+      newInode.name[9] = '\0';
+      newInode.startOfFile = -1;
+      newInode.nextInode = buffer[2];
+      buffer[2] = nextFreeBlock;
+      writeBlock(fd,0,buffer);
+      newInode.fp = 0;
+      newInode.creationTime = cur;
+      newInode.lastAccess = cur;
+
+      /* This writes the new Inode to the disk */
+      writeInode(fd,nextFreeBlock,&newInode);
+       
+	}
+   else{
+      /* Updates the inodes accesstime */
+      newInode = readInode(fd,i);
+      newInode.lastAccess = cur;
+      writeInode(fd,i,&newInode);
+   }
+
+   /* Creating the new DRT entry for the table */ 
+
+   newDRT = calloc(1, sizeof(DRT));
+   strcpy(newDRT->filename, newInode.name);
+   newDRT->creation = cur;
+   newDRT->lastAccess = cur;
+
+   /* Checks to see if the DRT table is empty, and assigns the correct
+   * file descriptor */
+   if(resourceTable == NULL){
+      newDRT->fd = 1;
+      newDRT->next = NULL;
+   }
+   else{
+      newDRT->fd = resourceTable->fd + 1;
+      newDRT->next = resourceTable;
+      resourceTable = newDRT;
+   }
+
+   close(fd);
+
+	return tempDRT->fd;
 }
 
 /* Closes the file, de-allocates all system/disk resources, and
@@ -215,7 +266,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    if (mountedDisk == NULL) {
       //No mounted disk error
    }
-   if (FD < 0) {
+   if (FD < 0) { // Where is this coming from??
       //Invalid FD error
    }
 
@@ -293,7 +344,7 @@ int tfs_deleteFile(fileDescriptor FD) {
    int mountedFD;
    SuperBlock sb;
    char targetInodeOffset;
-   Inode ind231;
+   Inode in;
    FileExtent fe;
    FreeBlock fb;
    char fileExtentOffset;
@@ -392,13 +443,15 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    }
 
    byteOffset = in.fp;
-   in.fp++;
-   writeInode(mountedFD, inodeBlockNum, &in);
-
+   
    if (in.startOfFile == -1){
       /*no fileExtent data error*/
    }
    fe = readFileExtent(mountedFD, in.startOfFile);
+ 
+   if (byteOffset % 253 == 0 && fe.nextBlock == -1){
+      /*EOF error*/
+   }  
    while(byteOffset - currentByte > 253) {
       if (fe.nextBlock == -1){
          /*pointed OOB error*/
@@ -407,13 +460,59 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
       currentByte+= 253;
    }
    /*the byte we want is in fe.data*/
+   in.fp++;
+   in.lastAccess = time(NULL);
+   writeInode(mountedFD, inodeBlockNum, &in);
+
    memcpy(buffer, &(fe.data[byteOffset-currentByte]), 1); 
    return 0;/*success*/
 }
 
 /* change the file pointer location to offset (absolute). Returns
 success/error codes.*/
-int tfs_seek(fileDescriptor FD, int offset);
+int tfs_seek(fileDescriptor FD, int offset){
+   char *filename = NULL;
+   DRT *cursor = resourceTable;
+   int fd, i; 
+   int numBlocks = DEFAULT_DISK_SIZE/BLOCKSIZE;
+   time_t cur;
+   Inode tempInode;
+
+   if(mountedDisk){
+      fd = openDisk(mountedDisk,0);
+   }
+   else{
+      /* return no file mounted file error */
+   }
+
+   while(cursor != NULL){
+      if(cursor->fd == FD){
+         filename = malloc(sizeof(char) * 9);
+         strcpy(filename, cursor->filename);
+         break;
+      }
+      cursor = cursor->next;
+   }
+
+   if(filename == NULL){
+      /* return error */
+   }
+
+   for(i = 0; i < numBlocks; i++){
+      tempInode = readInode(fd,i);
+   
+      if(tempInode.blockType == 2){
+         if(!strcmp(filename, tempInode.name)){
+            tempInode.fp = offset;
+            cur = time(NULL);
+            tempInode.lastAccess = cur;
+            writeInode(fd,i,&tempInode);
+            break;
+         }
+      }
+   }
+   return 1;
+}
 
 
 int setUpFS(int fd, char *fname, int nBlocks) {
@@ -430,7 +529,8 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    
    root.blockType = 2;
    root.magicNum = 0x44;
-   memcpy(root.name, fname, 9);
+   strncpy(root.name, fname, 9);
+   root.name[8] = '\0';
    root.creationTime = time(NULL);
    root.lastAccess = time(NULL);
    /*timestamp things*/
@@ -478,6 +578,7 @@ int writeSuperBlock(fileDescriptor fd, SuperBlock *sb) {
 
 Inode readInode(fileDescriptor fd, char blockNum) {
    Inode in;
+
    readBlock(fd, blockNum, &in);
    return in;
 }
