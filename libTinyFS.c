@@ -36,7 +36,7 @@ int tfs_mkfs(char *filename, int nBytes) {
    return 0;
 }
 
-/* tfs_mount(char *diskname) ​“mounts” a TinyFS file system located
+/* tfs_mount(char *diskname) “mounts” a TinyFS file system located
 within ‘diskname’ unix file. tfs_unmount(void) “unmounts” the
 currently mounted file system. As part of the mount operation,
 tfs_mount should verify the file system is the correct type. Only one
@@ -44,11 +44,9 @@ file system may be mounted at a time. Use tfs_unmount to cleanly
 unmount the currently mounted file system. Must return a specified
 success/error code. */
 int tfs_mount(char *diskname){
-
    char buff[BLOCKSIZE];
    fileDescriptor fd;
    int readStatus;
-
 
 
    if(mountedDisk){
@@ -82,7 +80,7 @@ int tfs_mount(char *diskname){
 
 int tfs_unmount(void){
 
-   if(mountedDisk){
+   if(mountedDisk == NULL){
       //throw file already unmounted error
    }
 
@@ -92,6 +90,11 @@ int tfs_unmount(void){
 
    free(mountedDisk); 
    mountedDisk = NULL;
+
+   //Clear DRT 
+   if (resourceTable != NULL) {
+      resourceTable = NULL;
+   }
 
    return 1;
 }
@@ -202,11 +205,10 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    SuperBlock sb; 
    int mountedFD;
    int extentDataSize = BLOCKSIZE - 3,
-       numExtents,
+       numExtents, filePresent = 0,
        nextFree,
        i;
    DRT *temp = resourceTable;
-   //DRT *previous;
 
    if (mountedDisk == NULL) {
       //No mounted disk error
@@ -222,14 +224,20 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
 
    if (temp == NULL) {
       //Resource table empty - ERROR?
+      //File is not open for writing 
    }
 
    while (temp != NULL) {
       if (temp->fd == FD) {
          strcpy(newInode.name, temp->filename);
+         filePresent = 1;
          break;
       }
       temp = temp->next;
+   }
+   
+   if (!filePresent) {
+      //Error file not open for writing
    }
 
    newInode.creationTime = time(NULL); 
@@ -239,6 +247,12 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       
    newInode.startOfFile = readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
    newInode.nextInode = sb.rootInodeBlockNum;
+
+   //Make sure empty space at end of block is 0
+   for (i = 0; i < sizeof(newInode.empty); i++) {
+     newInode.empty[i] = 0;
+   }
+      
    writeInode(mountedFD, sb.freeBlocksRoot, &newInode);
 
    //Insert new inode as root inode 
@@ -285,7 +299,7 @@ int tfs_deleteFile(fileDescriptor FD) {
    int mountedFD;
    SuperBlock sb;
    char targetInodeOffset;
-   Inode in;
+   Inode ind231;
    FileExtent fe;
    FreeBlock fb;
    char fileExtentOffset;
@@ -386,6 +400,8 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    root.blockType = 2;
    root.magicNum = 0x44;
    memcpy(root.name, fname, 9);
+   root.creationTime = time(NULL);
+   root.lastAccess = time(NULL);
    /*timestamp things*/
 
    everythingElse.blockType = 4;
