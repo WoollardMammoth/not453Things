@@ -299,7 +299,7 @@ int tfs_deleteFile(fileDescriptor FD) {
    int mountedFD;
    SuperBlock sb;
    char targetInodeOffset;
-   Inode ind231;
+   Inode in;
    FileExtent fe;
    FreeBlock fb;
    char fileExtentOffset;
