@@ -480,8 +480,8 @@ int tfs_seek(fileDescriptor FD, int offset){
    DRT *cursor = resourceTable;
    int fd, i; 
    int numBlocks = DEFAULT_DISK_SIZE/BLOCKSIZE;
-   char buffer[BLOCKSIZE];
    time_t cur;
+   Inode tempInode;
 
    if(mountedDisk){
       fd = openDisk(mountedDisk,0);
@@ -504,15 +504,14 @@ int tfs_seek(fileDescriptor FD, int offset){
    }
 
    for(i = 0; i < numBlocks; i++){
-      if(readBlock(fd,i,buffer) < 0){
-         /* error */
-      }
-      if(buffer[0] == 2){
-         if(!strcmp(filename, buffer + 2)){
-            buffer[13] = offset;
+      tempInode = readInode(fd,i);
+   
+      if(tempInode.blockType == 2){
+         if(!strcmp(filename, tempInode.name)){
+            tempInode.fp = offset;
             cur = time(NULL);
-            memcpy(buffer + 17, &cur, sizeof(time_t));
-            writeBlock(fd,i,buffer);
+            tempInode.lastAccess = cur;
+            writeInode(fd,i,&tempInode);
             break;
          }
       }
