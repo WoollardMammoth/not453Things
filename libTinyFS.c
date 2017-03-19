@@ -467,6 +467,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    }
    /*the byte we want is in fe.data*/
    in.fp++;
+   in.lastAccess = time(NULL);
    writeInode(mountedFD, inodeBlockNum, &in);
 
    memcpy(buffer, &(fe.data[byteOffset-currentByte]), 1); 
