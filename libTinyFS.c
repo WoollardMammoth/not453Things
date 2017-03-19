@@ -648,7 +648,9 @@ int tfs_seek(fileDescriptor FD, int offset){
    }
 
    for(i = 0; i < numBlocks; i++){
-      tempInode = readInode(fd,i);
+      if ((tempInode = readInode(fd,i)) < 0) {
+         return 0;
+      }
    
       if(tempInode.blockType == 2){
          if(!strcmp(filename, tempInode.name)){
