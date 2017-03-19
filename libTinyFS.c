@@ -220,6 +220,9 @@ fileDescriptor tfs_openFile(char *name){
       newInode.lastAccess = cur;
 
       /* This writes the new Inode to the disk */
+      if (nextFreeBlock == -1) {
+         return ERR_NOSPACE;
+      }
       writeInode(fd,nextFreeBlock,&newInode);
        
 	}
@@ -289,7 +292,7 @@ int tfs_closeFile(fileDescriptor FD) {
       if(TEST){
          printf("TEST: FD '%d' was closed\n", FD);
       }
-      close(FD);
+      /*close(FD);*/
       return 0;/*success*/
    } else {
       previous = temp;
@@ -297,7 +300,7 @@ int tfs_closeFile(fileDescriptor FD) {
          if (temp->fd == FD) {
             previous->next = temp->next;
             free(temp);
-            close(FD);
+            /*close(FD); maybe not, these aren't FDs like we normally think of*/
             if(TEST){
               printf("TEST: FD '%d' was closed\n", FD);
             }
