@@ -105,7 +105,8 @@ currently mounted file system. Creates a dynamic resource table entry
 for the file, and returns a file descriptor (integer) that can be
 used to reference this file while the filesystem is mounted. */
 fileDescriptor tfs_openFile(char *name){
-	DRT *newDRT, *tempDRT = resourceTable;
+	DRT *newDRT = NULL, 
+      *tempDRT = resourceTable;
 	fileDescriptor fd;
 	int i;
 	int present = 0;
@@ -113,7 +114,7 @@ fileDescriptor tfs_openFile(char *name){
 	char tempBuffer[BLOCKSIZE];
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
 	char nextFreeBlock = '\0';
-   time_t = cur;
+   time_t cur;
    Inode newInode;
 
 	if(mountedDisk == NULL){
@@ -133,7 +134,7 @@ fileDescriptor tfs_openFile(char *name){
 		if(readBlock(fd,i,buffer) < 0){
 			/*Need to return Error*/
 		}
-      
+      /* Check to see if it is an Inode */
 		if(buffer[0] == 2){
 			if(strcmp(name, &(buffer[4])) == 0){
 				present = 1;
@@ -165,10 +166,10 @@ fileDescriptor tfs_openFile(char *name){
       * This makes a new node at the location specified by nextFreeBlock 
       * and updates the root inode to point at this inode
       */
-      newInode.type = 2;
+      newInode.blockType = 2;
       newInode.magicNum = 0x44;
       memcpy(newInode.name, name, 8);
-      (newInode.name)[9] = "\n";
+      newInode.name[9] = '\0';
       newInode.startOfFile = -1;
       newInode.nextInode = buffer[2];
       buffer[2] = nextFreeBlock;
@@ -182,26 +183,29 @@ fileDescriptor tfs_openFile(char *name){
        
 	}
    else{
+      /* Updates the inodes accesstime */
       newInode = readInode(fd,i);
       newInode.lastAccess = cur;
       writeInode(fd,i,&newInode);
    }
 
-   tempDRT = NULL;
+   /* Creating the new DRT entry for the table */ 
 
-   tempDRT = calloc(1, sizeof(DRT));
-   tempDRT->name = newInode.name;
-   tempDRT->creationTime = cur;
-   tempDRT->lastAccess = cur;
+   newDRT = calloc(1, sizeof(DRT));
+   strcpy(newDRT->filename, newInode.name);
+   newDRT->creation = cur;
+   newDRT->lastAccess = cur;
 
+   /* Checks to see if the DRT table is empty, and assigns the correct
+   * file descriptor */
    if(resourceTable == NULL){
-      tempDRT->fd = 1;
-      tempDRT->next = NULL;
+      newDRT->fd = 1;
+      newDRT->next = NULL;
    }
    else{
-      tempDRT->fd = resourceTable->fd + 1;
-      tempDRT->next = resourceTable;
-      resourceTable = tempDRT;
+      newDRT->fd = resourceTable->fd + 1;
+      newDRT->next = resourceTable;
+      resourceTable = newDRT;
    }
 
    close(fd);
