@@ -169,7 +169,7 @@ fileDescriptor tfs_openFile(char *name){
       newInode.blockType = 2;
       newInode.magicNum = 0x44;
       memcpy(newInode.name, name, 8);
-      newInode.name[9] = '\0';
+      newInode.name[8] = '\0';
       newInode.startOfFile = -1;
       newInode.nextInode = buffer[2];
       buffer[2] = nextFreeBlock;
@@ -254,13 +254,12 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    Inode curInode;
    FileExtent newExtent; 
    SuperBlock sb;  
+   FreeBlock fb;
    DRT *temp = resourceTable;
-   char inodeIdx, extentIdx;
+   char inodeIdx = 0, curExtentIdx = 0, nextExtentIdx = 0, nextFree = 0;
    char *openFile;
-   int mountedFD;
-   int extentDataSize = BLOCKSIZE - 3,
-       numExtents, filePresent = 0,
-       i;
+   int mountedFD, extentDataSize = BLOCKSIZE - 3,
+       numExtents, filePresent = 0, i;
 
    if (mountedDisk == NULL) {
       //No mounted disk error
@@ -281,7 +280,6 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       if (temp->fd == FD) {
          openFile = calloc(sizeof(char), strlen(temp->filename) + 1);
          strcpy(openFile, temp->filename);
-         //strcpy(newInode.name, temp->filename);
          filePresent = 1;
          break;
       }
@@ -305,7 +303,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    curInode.fp = 0;
    curInode.lastAccess = time(NULL);
 
-   writeInode(mountedFD, inodeIdx, &curInode);
+   //writeInode(mountedFD, inodeIdx, &curInode);
    
    //Write buffer data
    if (size % 253 == 0) {
@@ -315,23 +313,48 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       numExtents = (size/extentDataSize) + 1;
    }
 
-   extentIdx = curInode.startOfFile;
 
+   //Delete current contents of file
+   if (curInode.startOfFile != -1) {
+      curExtentIdx = curInode.startOfFile;
+
+      while (nextExtentIdx != -1) {
+         nextExtentIdx = readFileExtent(mountedFD, curExtentIdx).nextBlock;
+
+         fb.blockType = 4;
+         fb.magicNum = 0x44;
+         fb.nextFreeBlock = sb.freeBlocksRoot; 
+         writeFreeBlock(mountedFD, curExtentIdx, &fb);
+         
+         sb.freeBlocksRoot = curExtentIdx;
+         writeSuperBlock(mountedFD, &sb);
+
+         curExtentIdx = nextExtentIdx;
+      }
+
+      curInode.startOfFile = readSuperBlock(mountedFD).freeBlocksRoot;
+   }
+
+
+   //Write buffer data
    for (i = 0; i < numExtents; i++) {
       newExtent.blockType = 3;
       newExtent.magicNum = 0x44; 
-   
+ 
       if (i == numExtents-1) { 
          newExtent.nextBlock = -1;
       }
-      else {
-         newExtent.nextBlock = readFileExtent(mountedFD, extentIdx).nextBlock; 
+      else { 
+         newExtent.nextBlock =  readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
       }
 
       memcpy(buffer + (extentDataSize*i), newExtent.data, extentDataSize);
 
-      writeFileExtent(mountedFD, extentIdx, &newExtent);
-      extentIdx = newExtent.nextBlock;
+      nextFree = readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
+      writeFileExtent(mountedFD, sb.freeBlocksRoot, &newExtent);
+
+      sb.freeBlocksRoot = nextFree; 
+      writeSuperBlock(mountedFD, &sb);
    } 
 
    return 0;
