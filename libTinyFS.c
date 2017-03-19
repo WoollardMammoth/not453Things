@@ -745,6 +745,7 @@ int writeInode(fileDescriptor fd, char blockNum, Inode *in) {
 FileExtent readFileExtent(fileDescriptor fd, char blockNum) {
    FileExtent fe;
    if(readBlock(fd, blockNum, &fe)){
+   //inodeIdx = sb.rootInodeBlockNum;
       fe.blockType = -1;
    }
    return fe;
