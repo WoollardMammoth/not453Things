@@ -359,7 +359,15 @@ pointer. */
 int tfs_readByte(fileDescriptor FD, char *buffer) {
    DRT *temp = resourceTable;
    int mountedFD;
+   SuperBlock sb;
+   Inode in;
+   FileExtent fe;
+   char inodeBlockNum;
+   int byteOffset;
+   int currentByte;
 
+   byteOffset = -1;
+   currentByte = 0;
    if (FD < 0) {
       /*invalid FD error*/
    } else if (temp == NULL) {
@@ -377,6 +385,35 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
       /*FD not open error*/
    }
    mountedFD = openDisk(mountedDisk, 0);
+
+   sb = readSuperBlock(mountedFD);
+   in = readInode(mountedFD, sb.rootInodeBlockNum);
+
+   while (strcmp(in.name, temp->filename) != 0) {
+      if (in.nextInode == -1) {
+         /*filename not found error*/
+      }
+      inodeBlockNum = in.nextInode;
+      in = readInode(mountedFD, in.nextInode);
+   }
+
+   byteOffset = in.fp;
+   in.fp++;
+   writeInode(mountedFD, inodeBlockNum, &in);
+
+   if (in.startOfFile == -1){
+      /*no fileExtent data error*/
+   }
+   fe = readFileExtent(mountedFD, in.startOfFile);
+   while(byteOffset - currentByte > 253) {
+      if (fe.nextBlock == -1){
+         /*pointed OOB error*/
+      }
+      readFileExtent(mountedFD, fe.nextBlock);
+      currentByte+= 253;
+   }
+   /*the byte we want is in fe.data*/
+   memcpy(buffer, &(fe.data[byteOffset-currentByte]), 1); 
    return 0;/*success*/
 }
 

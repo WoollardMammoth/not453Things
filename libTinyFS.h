@@ -17,6 +17,7 @@ typedef struct Inode {
    char name[9];
    char startOfFile;
    char nextInode;
+   char fp;
    time_t creationTime;
    time_t lastAccess;
    char empty[256 - 13 - (3*sizeof(time_t))];/*not sure why 3*sizeof(time_t)?*/
