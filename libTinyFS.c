@@ -377,7 +377,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    if((sb = readSuperBlock(mountedFD)).blockType < 0) {
       return ERR_READDISK;
    }
-   curInode = readInode(mountedFD, sb.rootInodeBlockNum);
+   if ((curInode = readInode(mountedFD, sb.rootInodeBlockNum)).blockType < 0 ) {
+      return ERR_READDISK;
+   }
 
    while (strcmp(curInode.name, openFile) != 0) {
       inodeIdx = curInode.nextInode;
@@ -512,14 +514,16 @@ int tfs_deleteFile(fileDescriptor FD) {
    if ((sb = readSuperBlock(mountedFD)).blockType < 0) {
       return ERR_READDISK;
    }
-   in = readInode(mountedFD, sb.rootInodeBlockNum);
+   if ((in = readInode(mountedFD, sb.rootInodeBlockNum)).blockType < 0) {
+      return ERR_READDISK;
+   }
 
    while (strcmp(in.name, temp->filename) != 0) {
       if (in.nextInode == -1) {
          return ERR_BADFILE;
       }
       targetInodeOffset = in.nextInode;
-      if ((in = readInode(mountedFD, in.nextInode)).blockType) {
+      if ((in = readInode(mountedFD, in.nextInode)).blockType < 0) {
          return ERR_READDISK;
       }
    }
@@ -601,7 +605,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    if ((sb = readSuperBlock(mountedFD)).blockType < 0) {
       return ERR_READDISK;
    }
-   in = readInode(mountedFD, sb.rootInodeBlockNum);
+   if((in = readInode(mountedFD, sb.rootInodeBlockNum)).blockType < 0)
 
    while (strcmp(in.name, temp->filename) != 0) {
       if (in.nextInode == -1) {
