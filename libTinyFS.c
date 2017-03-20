@@ -509,7 +509,6 @@ int tfs_deleteFile(fileDescriptor FD) {
       return ERR_BADFILE;
    }
    mountedFD = openDisk(mountedDisk, 0);
-   
    if ((sb = readSuperBlock(mountedFD)).blockType < 0) {
       return ERR_READDISK;
    }
