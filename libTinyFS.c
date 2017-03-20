@@ -185,14 +185,16 @@ fileDescriptor tfs_openFile(char *name){
 
       /* Reading the Superblock */ 
 		if((superBlock = readSuperBlock(fd)).blockType < 0){
-			return ERR_BADFS;
+			return ERR_READDISK;
 		}
       /* Taking data out of the superblock */
 		if(superBlock.blockType == 1){
 			nextFreeBlock = superBlock.freeBlocksRoot;
 			readBlock(fd,nextFreeBlock,tempBuffer);
 			superBlock.freeBlocksRoot = tempBuffer[2];
-			writeSuperBlock(fd,&superBlock);
+			if (writeSuperBlock(fd,&superBlock) < 0) {
+            return ERR_WRITEDISK;
+         }
 		}
 		else{
 			return ERR_BADFS;
@@ -369,7 +371,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    }
 
    //Find inode for file
-   sb = readSuperBlock(mountedFD);
+   if((sb = readSuperBlock(mountedFD)).blockType < 0) {
+      return ERR_READDISK;
+   }
    curInode = readInode(mountedFD, sb.rootInodeBlockNum);
 
    while (strcmp(curInode.name, openFile) != 0) {
@@ -404,12 +408,14 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
          writeFreeBlock(mountedFD, curExtentIdx, &fb);
          
          sb.freeBlocksRoot = curExtentIdx;
-         writeSuperBlock(mountedFD, &sb);
+         if (writeSuperBlock(mountedFD, &sb) < 0) {
+            return ERR_WRITEDISK;
+         }
 
          curExtentIdx = nextExtentIdx;
       }
 
-      curInode.startOfFile = readSuperBlock(mountedFD).freeBlocksRoot;
+      curInode.startOfFile = sb.freeBlocksRoot;
       writeInode(mountedFD, inodeIdx, &curInode);
    }
 
@@ -431,7 +437,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       writeFileExtent(mountedFD, sb.freeBlocksRoot, &newExtent);
 
       sb.freeBlocksRoot = nextFree; 
-      writeSuperBlock(mountedFD, &sb);
+      if (writeSuperBlock(mountedFD, &sb) < 0) {
+         return ERR_WRITEDISK;
+      }
    }
 
    if(TEST){
@@ -484,7 +492,9 @@ int tfs_deleteFile(fileDescriptor FD) {
       return ERR_BADFILE;
    }
    mountedFD = openDisk(mountedDisk, 0);
-   sb = readSuperBlock(mountedFD);
+   if ((sb = readSuperBlock(mountedFD)).blockType < 0) {
+      return ERR_READDISK;
+   }
    in = readInode(mountedFD, sb.rootInodeBlockNum);
 
    while (strcmp(in.name, temp->filename) != 0) {
@@ -507,7 +517,9 @@ int tfs_deleteFile(fileDescriptor FD) {
       writeFreeBlock(mountedFD, sb.freeBlocksRoot, &fb);
       fileExtentOffset = fe.nextBlock;
    }
-   writeSuperBlock(mountedFD, &sb);
+   if (writeSuperBlock(mountedFD, &sb) < 0) {
+      return ERR_WRITEDISK;
+   }
 
    if(TEST){
       printf("TEST: '%s' with FD '%d' was closed and removed from the Dynamic Resource Table\n",
@@ -564,7 +576,9 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    }
    mountedFD = openDisk(mountedDisk, 0);
 
-   sb = readSuperBlock(mountedFD);
+   if ((sb = readSuperBlock(mountedFD)).blockType < 0) {
+      return ERR_READDISK;
+   }
    in = readInode(mountedFD, sb.rootInodeBlockNum);
 
    while (strcmp(in.name, temp->filename) != 0) {
