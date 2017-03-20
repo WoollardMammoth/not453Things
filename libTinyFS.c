@@ -144,7 +144,8 @@ fileDescriptor tfs_openFile(char *name){
                printf("TEST: '%s' was found in the Dynamic Resource Table. It has a FD of '%d'\n",
                name, tempDRT->fd);
             }
-            return NO_ACTION_FILE_ALREADY_OPEN; 
+            return tempDRT->fd;
+               //NO_ACTION_FILE_ALREADY_OPEN; 
 			}
 			tempDRT = tempDRT->next;
 		}

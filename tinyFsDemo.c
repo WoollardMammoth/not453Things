@@ -22,7 +22,7 @@ int main() {
    char diskName[] = "diskX.dsk"; 
    int err;
    int fd, tempFd, closeFd;
-   int fda, fdb;
+   //int fda, fdb;
    printf(">>> DEMO FOR TinyFS <<<");
  
    for (curTest = 0; curTest < NUM_TESTS; curTest++) {
@@ -141,12 +141,12 @@ int main() {
 	    		printf("> DEMO 4: Successfully closed file with FD '%d'\n", closeFd);
 	    	}
 
-         if((fda = tfs_openFile("fileA")) >= 0 && (fdb = tfs_openFile("fileB")) >= 0) {
+         /*if((fda = tfs_openFile("fileA")) >= 0 && (fdb = tfs_openFile("fileB")) >= 0) {
             printf("> DEMO 5: Sucessfully opened multiple files with file descriptors %d and %d\n", fda, fdb);
          }
          else {
             printf("> DEMO 5: Failed opening multiple files with error codes %d and %d\n", fda, fdb);
-         }
+         }*/
 	    }
 
 
@@ -162,7 +162,7 @@ int main() {
           if ((err = tfs_writeFile(fd, "Goodbye World, finals have come", 32)) < 0) {
              printf("Write to file failed with %d\n", err);
           } 
-
+         
 
        }  
                
