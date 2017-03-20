@@ -457,7 +457,10 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
             return ERR_READDISK;
          }
       }
-     
+      
+      if (size < BLOCKSIZE - 3) {
+         extentDataSize = size;
+      }
 
       memcpy(newExtent.data, buffer + (extentDataSize*i), extentDataSize);
 
@@ -739,23 +742,22 @@ int tfs_seek(fileDescriptor FD, int offset){
 
 int setUpFS(int fd, char *fname, int nBlocks) {
    SuperBlock sb;
-   Inode root;
+   //Inode root;
    FreeBlock everythingElse;
    int i;
    char *initializer;
 
    sb.blockType = 1;
    sb.magicNum = 0x44;
-   sb.rootInodeBlockNum = 1;
-   sb.freeBlocksRoot = 2;
+   sb.rootInodeBlockNum = -1;
+   sb.freeBlocksRoot = 1;
    
-   root.blockType = 2;
+   /*root.blockType = 2;
    root.magicNum = 0x44;
    strncpy(root.name, fname, 9);
    root.name[8] = '\0';
    root.creationTime = time(NULL);
-   root.lastAccess = time(NULL);
-   /*timestamp things*/
+   root.lastAccess = time(NULL);*/
 
    everythingElse.blockType = 4;
    everythingElse.magicNum = 0x44;
@@ -771,11 +773,11 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    if (0 != writeBlock(fd, 0, &sb)) {
       return -11; /*writing superBlock failed*/
    }
-   if (0 != writeBlock(fd, 1, &root)) {
-      return -12; /*writing root inode failed*/      
-   }
+   /*if (0 != writeBlock(fd, 1, &root)) {
+      return -12; /writing root inode failed
+   }*/
 
-   for (i = 2; i<nBlocks; i++) {
+   for (i = 1; i<nBlocks; i++) {
       everythingElse.nextFreeBlock = i+1;
       if (i+1 == nBlocks) {
          everythingElse.nextFreeBlock = -1;
