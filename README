@@ -1,7 +1,55 @@
 # not453Things
 # Ok... maybe this is 453 things. You found me out.
 #
-# Anyways, if you go to/will go to Cal Poly stop looking at this repo.
+# Anyways, if you go to/will go to Cal Poly stop looking at this git repo.
 # And definitely don't clone it and turn it in (even if you make changes).
 # You will fail! But, more importantly, I will be retroactively failed.
 # Just do your own damn work!
+
+Griffin Cloonan
+Jake Whipple
+Landon Woollard
+
+This is our TinyFS implementation. We made a few design decisions with this
+program that we would like to explain our reasoning for.
+
+1. Free space
+   
+   Free space is stored as a chain. The first piece is pointed to from the 
+   supernode. Each piece of free space points to the next piece of free space.
+   Our "pointers" in this case are block numbers. For example, if the mounted
+   disk's superblock says free space starts at 42 then the 42nd block (from a 0
+   index) will be free. It might say the next free space is at 52. and so on.
+
+   This decision was made for 2 reasons. First, finding free space has a time
+   function of O(1), becuase it can always be accomplished in a constant number
+   of steps. Similarly, since we can always find the root, as we free used space 
+   from we can always point that space to the current free space root, and then
+   set the superblocks free space root to the block number of the new free 
+   space. This is also O(1), and the integrity of our free space chain will be
+   maintained. We never have to search for a specific free space, so we avoid
+   the O(N) time to search a linked list.
+
+2. Dynamic Resource Table
+   
+   Our DRT is also implemented as a linked list. Additions are O(1).
+   We do have to search the DRT for every read/write/close/delete, but even
+   in the worst case scenario we are only O(N) which isn't even that bad.
+   Searching the DRT for matching fds to find filenames to match to inodes
+   is a quick process by moving a temp node through the chain.
+
+3. Inodes
+
+   Similarly to free space our Superblock points to a root inode. Each inode
+   points to the next inode (or -1 if it is the last Inode). Adding Inodes is
+   has a constant time, and searching for a specific inode has a linear time.
+   
+
+   Each Inode also points to a FileExtent if file data has been written to that 
+   file. 
+
+4. File Extent
+   
+   Once you have the inode which will bring you to the file data, you will be 
+   traversing file extents. These are implemented in the same manner, where
+   each FileExtent points to the next section of data
