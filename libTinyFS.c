@@ -8,6 +8,7 @@
 #include "libDisk.h"
 #include "TinyFS_errno.h"
 
+
 static char *mountedDisk = NULL; // This is the name of the disk that is mounted
 static DRT *resourceTable = NULL;
 
@@ -121,7 +122,7 @@ fileDescriptor tfs_openFile(char *name){
 	char buffer[BLOCKSIZE];
 	char tempBuffer[BLOCKSIZE];
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
-	char nextFreeBlock = '\0';
+	char nextFreeBlock = -1;
    time_t cur;
    Inode newInode, tempInode;
    SuperBlock superBlock;
@@ -143,7 +144,7 @@ fileDescriptor tfs_openFile(char *name){
                printf("TEST: '%s' was found in the Dynamic Resource Table. It has a FD of '%d'\n",
                name, tempDRT->fd);
             }
-            return tempDRT->fd;
+            return NO_ACTION_FILE_ALREADY_OPEN; 
 			}
 			tempDRT = tempDRT->next;
 		}
@@ -253,7 +254,8 @@ fileDescriptor tfs_openFile(char *name){
 
    newDRT = calloc(1,sizeof(DRT));
 
-   strcpy(newDRT->filename, name);
+   strncpy(newDRT->filename, name, 8);
+   newDRT->filename[8] = '\0';
    newDRT->creation = cur;
    newDRT->lastAccess = cur;
 
@@ -341,6 +343,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    int mountedFD, extentDataSize = BLOCKSIZE - 3,
        numExtents, filePresent = 0, i;
 
+
    if(TEST){
       printf("TEST: Attempting to write '%d' bytes for the file with FD '%d'\n",
       size, FD);
@@ -372,7 +375,10 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       }
       temp = temp->next;
    }
-   
+  
+
+
+
    if (!filePresent) {
       return ERR_BADFILE;
    }
@@ -389,18 +395,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
          return ERR_READDISK;
       }
    }
-
    curInode.fp = 0;
    curInode.lastAccess = time(NULL);
 
-   
-   //Write buffer data
-   if (size % 253 == 0) {
-      numExtents = size/extentDataSize; 
-   }
-   else {
-      numExtents = (size/extentDataSize) + 1;
-   }
 
 
    //Delete current contents of file
@@ -434,6 +431,13 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
          return ERR_WRITEDISK;
       }
    }
+ 
+   if (size % 253 == 0) {
+      numExtents = size/extentDataSize; 
+   }
+   else {
+      numExtents = (size/extentDataSize) + 1;
+   }
 
    //Write buffer data
    for (i = 0; i < numExtents; i++) {
@@ -450,8 +454,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
             return ERR_READDISK;
          }
       }
+     
 
-      memcpy(buffer + (extentDataSize*i), newExtent.data, extentDataSize);
+      memcpy(newExtent.data, buffer + (extentDataSize*i), extentDataSize);
 
       if ((fb = readFreeBlock(mountedFD, sb.freeBlocksRoot)).blockType < 0) {
          return ERR_READDISK;

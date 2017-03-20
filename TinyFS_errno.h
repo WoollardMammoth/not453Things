@@ -19,4 +19,6 @@
 
 #define ERR_WRITEDISK -208
 
+#define NO_ACTION_FILE_ALREADY_OPEN -209
+
 #endif

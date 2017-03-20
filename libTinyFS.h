@@ -3,7 +3,7 @@
 
 #include "tinyFS.h"
 
-#define TEST 0
+#define TEST 1
 
 typedef struct SuperBlock {
    char blockType;

@@ -4,8 +4,9 @@
 #include "tinyFS.h"
 #include "libDisk.h"
 #include "libTinyFS.h"
+#include "TinyFS_errno.h"
 
-#define NUM_TESTS 2
+#define NUM_TESTS 3
 
 #define BLOCKSIZE 256
 #define NUM_TEST_DISKS 4 /* number of disks to test with */
@@ -18,27 +19,31 @@
 
 int main() {
    int curTest;
-   char diskName[] = "disk0.dsk";
+   char diskName[] = "diskX.dsk"; 
    int err;
-   int fd, tempFd;
+   int fd, tempFd, closeFd;
 
-   printf("\n\n>>> DEMO FOR TinyFS <<<\n\n");
+   printf(">>> DEMO FOR TinyFS <<<");
  
    for (curTest = 0; curTest < NUM_TESTS; curTest++) {
-      //diskName[4] = '0' + curTest;
+      diskName[4] = '0' + curTest;
+
+
+      printf("\n\n*************************************\n");
+
 
    	 if ((err = tfs_mkfs(diskName, BLOCKSIZE * DEFAULT_DISK_SIZE)) < 0) {
          printf("> DEMO: Failed to create file system %s with error code '%d'\n", diskName, err);
          //Display errno
       }
       else {   
-         printf("> DEMO: Successfully created file system %s.\n", diskName);
+         printf("\n> DEMO %d: Successfully created file system %s.\n", curTest + 1, diskName);
 
          if (curTest == 0) {
 
-         	printf("\n\nDEMO: TEST 1\n\n");
+         	printf("\nDEMO TEST 1: MOUNT AND UNMOUNT\n\n");
          	printf("-> Functionality\n");
-         	printf("-> 1. Attempt to mount a file\n");
+         	printf("-> 1. Attempt to mount a file (should not have currently mounted file)\n");
          	printf("-> 2. Attempt to unmount a file\n");
          	printf("-> 3. Attempt to unmount a file when there is no file mounted\n");
          	printf("-> 4. Attempt to mount a file with no file mounted\n");
@@ -47,76 +52,114 @@ int main() {
          	
 
          	if ((err = tfs_mount(diskName)) < 0) {
-               printf("> DEMO: Failed to mount %s with error code '%d'\n", diskName, err);
+               printf("> DEMO 1: Failed to mount %s with error code '%d'\n", diskName, err);
                //Display errno
             }
             else {
-               printf("> DEMO: Successfully mounted %s\n", diskName);
+               printf("> DEMO 1: Successfully mounted %s\n", diskName);
             }
          	if((err = tfs_unmount()) < 0){
-         		printf("> DEMO: Failed to unmount %s with error code '%d'\n", diskName, err);
+         		printf("> DEMO 2: Failed to unmount %s with error code '%d'\n", diskName, err);
          	}
          	else {
-               printf("> DEMO: Successfully unmounted %s\n", diskName);
+               printf("> DEMO 2: Successfully unmounted %s\n", diskName);
             }
 
             if((err = tfs_unmount()) < 0){
-         		printf("> DEMO: Failed to unmount %s with error code '%d'\n", diskName, err);
+         		printf("> DEMO 3: Failed to unmount %s with error code '%d'\n", diskName, err);
          	}
          	else {
-               printf("> DEMO: Successfully unmounted %s\n", diskName);
+               printf("> DEMO 3: Successfully unmounted %s\n", diskName);
             }
 
             if ((err = tfs_mount(diskName)) < 0) {
-               printf("> DEMO: Failed to mount %s with error code '%d'\n", diskName, err);
+               printf("> DEMO 4: Failed to mount %s with error code '%d'\n", diskName, err);
                //Display errno
             }
             else {
-               printf("> DEMO: Successfully mounted %s\n", diskName);
+               printf("> DEMO 4: Successfully mounted %s\n", diskName);
             }
 
             if ((err = tfs_mount(diskName)) < 0) {
-               printf("> DEMO: Failed to mount %s with error code '%d'\n", diskName, err);
+               printf("> DEMO 5: Failed to mount %s with error code '%d'\n", diskName, err);
                //Display errno
             }
             else {
-               printf("> DEMO: Successfully mounted %s\n", diskName);
+               printf("> DEMO 5: Successfully mounted %s\n", diskName);
             }
 
         } 
+
+
         /* Test open file and close file */
 	    if (curTest == 1) {
 
-	    	printf("\n\nDEMO: TEST 2\n\n");
-         	printf("-> Functionality\n");
-         	printf("-> 1. Attempt to close a file that is not open\n");
-         	printf("-> 2. Attempt to open a file a file\n");
-         	printf("-> 3. Attempt to close a file that is open\n\n");
+	    	printf("\n\nDEMO TEST 2: OPEN AND CLOSE FILE\n\n");
+         printf("-> Functionality\n");
+        	printf("-> 1. Attempt to close a file that is not open\n");
+        	printf("-> 2. Attempt to open a file that is not open\n");
+         printf("-> 3. Attempt to open a file that is open\n");
+         printf("-> 4. Attempt to close a file that is open\n\n");
 
-	    	if((fd = tfs_closeFile(100)) < 0){
-	    		printf("> DEMO: Unable to close the file with FD '100' with error code %d\n", fd);
+         tfs_mount(diskName);
+
+	    	if ((fd = tfs_closeFile(100)) < 0){
+	    		printf("> DEMO 1: Unable to close the file with FD '100' with error code '%d'\n", fd);
 	    	}
 	    	else{
-	    		printf("> DEMO Successfully closed file with FD '100'\n");
+	    		printf("> DEMO 1: Successfully closed file with FD '100'\n");
 	    	}
 
-	    	if((fd = tfs_openFile("newFile")) < 0){
-	    		printf("> DEMO: Failed to open 'newFile' with error code '%d'\n", fd);
+         fd = tfs_openFile("newfile");
+	    	if (fd == ERR_NOSPACE) {
+	    		printf("> DEMO 2: Failed to open 'newFile' with error code '%d'\n", fd);
 	    	}
+         else if (fd == NO_ACTION_FILE_ALREADY_OPEN) {
+               printf("> DEMO 2: File already opened\n");
+         }
 	    	else{
-	    		printf("> DEMO: File 'newFile' was opened with FD '%d'\n", fd);
+	    		printf("> DEMO 2: File 'newFile' was opened with FD '%d'\n", fd);
+            closeFd = fd;
 	    	}
+       
 
-	    	if((tempFd = tfs_closeFile(fd)) < 0){
-	    		printf("> DEMO: Unable to close the file with error code %d\n", tempFd);
+         fd = tfs_openFile("newfile");
+	    	if (fd == ERR_NOSPACE) {
+	    		printf("> DEMO 3: Failed to open 'newFile' with error code '%d'\n", fd);
+	    	}
+         else if (fd == NO_ACTION_FILE_ALREADY_OPEN) {
+               printf("> DEMO 3: File already opened\n");
+         }
+	    	else{
+	    		printf("> DEMO 3: File 'newFile' was opened with FD '%d'\n", fd);
+	    	}
+         
+	    	if((tempFd = tfs_closeFile(closeFd)) < 0){
+	    		printf("> DEMO 4: Unable to close the file %d with error code %d\n", fd, tempFd);
 	    	}
 	    	else{
-	    		printf("> DEMO: Successfully closed file with FD '%d'\n", fd);
+	    		printf("> DEMO 4: Successfully closed file with FD '%d'\n", closeFd);
 	    	}
 	    }
+
+
 
 	    if (curTest == 2) {
-	    }
+          printf("\n\nDEMO TEST 3: WRITE AND READ \n\n");
+          printf("Functionality\n");
+          printf("-> 1. Attempt to write 'Goodbye World, finals have come' to file\n");
+
+          tfs_mount(diskName);
+          
+          fd = tfs_openFile("writefile");
+
+          if ((err = tfs_writeFile(fd, "Goodbye World, finals have come", 32)) < 0) {
+             printf("Write to file failed with %d\n", err);
+          } 
+
+
+       }  
+               
 
 	    if (curTest == 3) {
 	    }
