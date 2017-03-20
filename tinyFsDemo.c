@@ -22,7 +22,7 @@ int main() {
    char diskName[] = "diskX.dsk"; 
    int err;
    int fd, tempFd, closeFd;
-
+   int fda, fdb;
    printf(">>> DEMO FOR TinyFS <<<");
  
    for (curTest = 0; curTest < NUM_TESTS; curTest++) {
@@ -99,8 +99,8 @@ int main() {
         	printf("-> 1. Attempt to close a file that is not open\n");
         	printf("-> 2. Attempt to open a file that is not open\n");
          printf("-> 3. Attempt to open a file that is open\n");
-         printf("-> 4. Attempt to close a file that is open\n\n");
-
+         printf("-> 4. Attempt to close a file that is open\n");
+         printf("-> 5. Attempt to open multiple files\n\n");
          tfs_mount(diskName);
 
 	    	if ((fd = tfs_closeFile(100)) < 0){
@@ -140,8 +140,14 @@ int main() {
 	    	else{
 	    		printf("> DEMO 4: Successfully closed file with FD '%d'\n", closeFd);
 	    	}
-	    }
 
+         if((fda = tfs_openFile("fileA")) >= 0 && (fdb = tfs_openFile("fileB")) >= 0) {
+            printf("> DEMO 5: Sucessfully opened multiple files with file descriptors %d and %d\n", fda, fdb);
+         }
+         else {
+            printf("> DEMO 5: Failed opening multiple files with error codes %d and %d\n", fda, fdb);
+         }
+	    }
 
 
 	    if (curTest == 2) {
