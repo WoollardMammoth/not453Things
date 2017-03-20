@@ -22,6 +22,7 @@ int main() {
    char diskName[] = "diskX.dsk"; 
    int err;
    int fd, tempFd, closeFd;
+   char c;
    //int fda, fdb;
    printf(">>> DEMO FOR TinyFS <<<");
  
@@ -140,13 +141,6 @@ int main() {
 	    	else{
 	    		printf("> DEMO 4: Successfully closed file with FD '%d'\n", closeFd);
 	    	}
-
-         /*if((fda = tfs_openFile("fileA")) >= 0 && (fdb = tfs_openFile("fileB")) >= 0) {
-            printf("> DEMO 5: Sucessfully opened multiple files with file descriptors %d and %d\n", fda, fdb);
-         }
-         else {
-            printf("> DEMO 5: Failed opening multiple files with error codes %d and %d\n", fda, fdb);
-         }*/
 	    }
 
 
@@ -154,15 +148,33 @@ int main() {
           printf("\n\nDEMO TEST 3: WRITE AND READ \n\n");
           printf("Functionality\n");
           printf("-> 1. Attempt to write 'Goodbye World, finals have come' to file\n");
+          printf("-> 2. Seek to location 9 from above file\n");
+          printf("-> 3. Read from seek location to end of file\n\n");
+
 
           tfs_mount(diskName);
           
           fd = tfs_openFile("writefile");
 
           if ((err = tfs_writeFile(fd, "Goodbye World, finals have come", 32)) < 0) {
-             printf("Write to file failed with %d\n", err);
+             printf("DEMO 1: Write to file failed with %d\n", err);
           } 
-         
+          else { 
+             printf("DEMO 1: Successfully wrote 'Goodbye World, finals have come' to file\n");
+          }
+
+          if ((tfs_seek(fd, 9)) < 0) {
+             printf("DEMO 2: Failed to seek to location 9\n");
+          }
+          else {
+             printf("DEMO 2:Successful seek to location 9\n");
+          }
+          if (tfs_readByte(fd, &c) != 0) {
+            printf("DEMO 3: Successfully read byte: 'W'\n");
+          }
+          else {
+             printf("DEMO 3: Failed read by from location 9\n");
+          }
 
        }  
                

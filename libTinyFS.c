@@ -68,7 +68,6 @@ int tfs_mount(char *diskname){
    }
 
    
-   //mountedDisk = diskname;
    mountedDisk = calloc(sizeof(char), strlen(diskname) + 1);
    strcpy(mountedDisk, diskname);
 
@@ -119,7 +118,6 @@ fileDescriptor tfs_openFile(char *name){
 	fileDescriptor fd;
 	int i;
 	int present = 0;
-	char buffer[BLOCKSIZE];
 	char tempBuffer[BLOCKSIZE];
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
 	char nextFreeBlock = -1;
@@ -145,7 +143,6 @@ fileDescriptor tfs_openFile(char *name){
                name, tempDRT->fd);
             }
             return tempDRT->fd;
-               //NO_ACTION_FILE_ALREADY_OPEN; 
 			}
 			tempDRT = tempDRT->next;
 		}
@@ -167,7 +164,7 @@ fileDescriptor tfs_openFile(char *name){
 		}
       /* Check to see if it is an Inode */
 		if(tempInode.blockType == 2){
-			if(strcmp(name, &(buffer[4])) == 0){
+			if(strcmp(name, tempInode.name) == 0){
 				present = 1;
 				if(TEST){
                printf("TEST: '%s' was found on the mounted disk\n", name);
@@ -216,9 +213,9 @@ fileDescriptor tfs_openFile(char *name){
       memcpy(newInode.name, name, 8);
       newInode.name[8] = '\0';
       newInode.startOfFile = -1;
-      newInode.nextInode = buffer[2];
-      buffer[2] = nextFreeBlock;
-      writeBlock(fd,0,buffer);
+      newInode.nextInode = superBlock.rootInodeBlockNum;
+      superBlock.rootInodeBlockNum = nextFreeBlock;
+      writeBlock(fd,0,&superBlock);
       newInode.fp = 0;
       newInode.creationTime = cur;
       newInode.lastAccess = cur;
@@ -304,7 +301,6 @@ int tfs_closeFile(fileDescriptor FD) {
       if(TEST){
          printf("TEST: FD '%d' was closed\n", FD);
       }
-      /*close(FD);*/
       return 0;/*success*/
    } else {
       previous = temp;
@@ -312,7 +308,6 @@ int tfs_closeFile(fileDescriptor FD) {
          if (temp->fd == FD) {
             previous->next = temp->next;
             free(temp);
-            /*close(FD); maybe not, these aren't FDs like we normally think of*/
             if(TEST){
               printf("TEST: FD '%d' was closed\n", FD);
             }
@@ -353,7 +348,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    if (mountedDisk == NULL) {
       return ERR_NOMOUNTEDDISK;
    }
-   if (FD < 0) { // Where is this coming from??
+   if (FD < 0) { 
       return ERR_BADFD;
    }
 
@@ -642,6 +637,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    byteOffset = in.fp;
    
    if (in.startOfFile == -1){
+      return -1;
       /*no fileExtent data error*/
    }
    if ((fe = readFileExtent(mountedFD, in.startOfFile)).blockType < 0) {
@@ -649,10 +645,12 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    }
 
    if (byteOffset % 253 == 0 && fe.nextBlock == -1){
+      return -1;
       /*EOF error*/
    }  
    while(byteOffset - currentByte > 253) {
       if (fe.nextBlock == -1){
+         return -1;
          /*pointed OOB error*/
       }
       if ((fe = readFileExtent(mountedFD, fe.nextBlock)).blockType < 0) {
@@ -723,8 +721,8 @@ int tfs_seek(fileDescriptor FD, int offset){
       if ((tempInode = readInode(fd,i)).blockType < 0) {
          return ERR_READDISK;
       }
-   
       if(tempInode.blockType == 2){
+
          if(!strcmp(filename, tempInode.name)){
             tempInode.fp = offset;
             cur = time(NULL);
@@ -736,13 +734,13 @@ int tfs_seek(fileDescriptor FD, int offset){
          }
       }
    }
-   return 1;
+
+   return 0;
 }
 
 
 int setUpFS(int fd, char *fname, int nBlocks) {
    SuperBlock sb;
-   //Inode root;
    FreeBlock everythingElse;
    int i;
    char *initializer;
@@ -752,13 +750,6 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    sb.rootInodeBlockNum = -1;
    sb.freeBlocksRoot = 1;
    
-   /*root.blockType = 2;
-   root.magicNum = 0x44;
-   strncpy(root.name, fname, 9);
-   root.name[8] = '\0';
-   root.creationTime = time(NULL);
-   root.lastAccess = time(NULL);*/
-
    everythingElse.blockType = 4;
    everythingElse.magicNum = 0x44;
 
@@ -773,9 +764,6 @@ int setUpFS(int fd, char *fname, int nBlocks) {
    if (0 != writeBlock(fd, 0, &sb)) {
       return -11; /*writing superBlock failed*/
    }
-   /*if (0 != writeBlock(fd, 1, &root)) {
-      return -12; /writing root inode failed
-   }*/
 
    for (i = 1; i<nBlocks; i++) {
       everythingElse.nextFreeBlock = i+1;
@@ -823,7 +811,6 @@ int writeInode(fileDescriptor fd, char blockNum, Inode *in) {
 FileExtent readFileExtent(fileDescriptor fd, char blockNum) {
    FileExtent fe;
    if(readBlock(fd, blockNum, &fe) < 0){
-   //inodeIdx = sb.rootInodeBlockNum;
       fe.blockType = -1;
    }
    return fe;
