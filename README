@@ -52,4 +52,40 @@ program that we would like to explain our reasoning for.
    
    Once you have the inode which will bring you to the file data, you will be 
    traversing file extents. These are implemented in the same manner, where
-   each FileExtent points to the next section of data
+   each FileExtent points to the next section of data. Data is generally
+   accessed in a linear fashion, so linear access time was a logical choice for
+   extent data.
+
+
+********************************************************************************
+
+THINGS TO NOTE:
+
+1. the TEST macro
+   
+   in libTinyFS.h there is a macro TEST defined. If that is set to 0, you won't
+   notice anything. However, if you set that to 1 (or any non-zero value) then
+   when you run code you will see detailed TEST print statements describing
+   what is happeneing, as well as what significant variables are set to at that
+   point.
+
+2. Makefile
+
+   our code should be compiled with our makeFile, which will produce an 
+   executable named tinyFsDemo.
+
+3. Testing
+
+   We have provided our tests in tinyFsDemo.c.
+
+4. The "Additional Features" to get the last 20%
+
+   We attempted to introude timestamps to our filesystem. The tests look rather
+   grim.
+
+   Due to time constraints, no other additional features were implemented.
+
+5. Extra Credit
+
+   We didn't make it to getting the last 20 regular %s, the extra credit %s
+   certainly didn't happen, but we will take whatever we can get.
