@@ -233,7 +233,10 @@ fileDescriptor tfs_openFile(char *name){
          printf("TEST: '%s' was found on the mounted disk\n", name);
       }
       /* Updates the inodes accesstime */
-      newInode = readInode(fd,i);
+      if ((newInode = readInode(fd,i)).blockType < 0) {
+         return ERR_READDISK;
+      }
+
       newInode.lastAccess = cur;
       writeInode(fd,i,&newInode);
    }
@@ -378,7 +381,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
 
    while (strcmp(curInode.name, openFile) != 0) {
       inodeIdx = curInode.nextInode;
-      curInode = readInode(mountedFD, curInode.nextInode);
+      if ((curInode = readInode(mountedFD, curInode.nextInode)).blockType < 0) {
+         return ERR_READDISK;
+      }
    }
 
    curInode.fp = 0;
@@ -400,7 +405,11 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       curExtentIdx = curInode.startOfFile;
 
       while (nextExtentIdx != -1) {
-         nextExtentIdx = readFileExtent(mountedFD, curExtentIdx).nextBlock;
+         if ((newExtent = readFileExtent(mountedFD, curExtentIdx)).blockType < 0) {
+            return ERR_READDISK;
+         }
+
+         nextExtentIdx = newExtent.nextBlock;
 
          fb.blockType = 4;
          fb.magicNum = 0x44;
@@ -429,11 +438,19 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       }
       else { 
          newExtent.nextBlock =  readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
+
+         if (newExtent.blockType < 0) {
+            return ERR_READDISK;
+         }
       }
 
       memcpy(buffer + (extentDataSize*i), newExtent.data, extentDataSize);
 
-      nextFree = readFreeBlock(mountedFD, sb.freeBlocksRoot).nextFreeBlock;
+      if ((fb = readFreeBlock(mountedFD, sb.freeBlocksRoot)).blockType < 0) {
+         return ERR_READDISK;
+      }
+      
+      nextFree = fb.nextFreeBlock;
       writeFileExtent(mountedFD, sb.freeBlocksRoot, &newExtent);
 
       sb.freeBlocksRoot = nextFree; 
@@ -492,6 +509,7 @@ int tfs_deleteFile(fileDescriptor FD) {
       return ERR_BADFILE;
    }
    mountedFD = openDisk(mountedDisk, 0);
+   }
    if ((sb = readSuperBlock(mountedFD)).blockType < 0) {
       return ERR_READDISK;
    }
@@ -502,7 +520,9 @@ int tfs_deleteFile(fileDescriptor FD) {
          return ERR_BADFILE;
       }
       targetInodeOffset = in.nextInode;
-      in = readInode(mountedFD, in.nextInode);
+      if ((in = readInode(mountedFD, in.nextInode)).blockType) {
+         return ERR_READDISK;
+      }
    }
 
    /*in is the Inode of the file with file descriptor FD*/
@@ -511,7 +531,10 @@ int tfs_deleteFile(fileDescriptor FD) {
    sb.freeBlocksRoot = targetInodeOffset;
    writeFreeBlock(mountedFD, sb.freeBlocksRoot, &fb);
    while(fileExtentOffset != -1) {
-      fe = readFileExtent(mountedFD, fileExtentOffset);
+      if ((fe = readFileExtent(mountedFD, fileExtentOffset)).blockType < 0) {
+         return ERR_READDISK;
+      }
+
       fb.nextFreeBlock = sb.freeBlocksRoot;
       sb.freeBlocksRoot = fileExtentOffset;
       writeFreeBlock(mountedFD, sb.freeBlocksRoot, &fb);
@@ -586,7 +609,9 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
          return ERR_BADFILE;
       }
       inodeBlockNum = in.nextInode;
-      in = readInode(mountedFD, in.nextInode);
+      if ((in = readInode(mountedFD, in.nextInode)).blockType < 0) {
+         return ERR_READDISK;
+      }
    }
 
    byteOffset = in.fp;
@@ -594,8 +619,10 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    if (in.startOfFile == -1){
       /*no fileExtent data error*/
    }
-   fe = readFileExtent(mountedFD, in.startOfFile);
- 
+   if ((fe = readFileExtent(mountedFD, in.startOfFile)).blockType < 0) {
+      return ERR_READDISK;
+   }
+
    if (byteOffset % 253 == 0 && fe.nextBlock == -1){
       /*EOF error*/
    }  
@@ -603,8 +630,12 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
       if (fe.nextBlock == -1){
          /*pointed OOB error*/
       }
-      readFileExtent(mountedFD, fe.nextBlock);
+      if ((fe = readFileExtent(mountedFD, fe.nextBlock)).blockType < 0) {
+         return ERR_READDISK;
+      }
+
       currentByte+= 253;
+     
    }
    /*the byte we want is in fe.data*/
    in.fp++;
@@ -662,7 +693,9 @@ int tfs_seek(fileDescriptor FD, int offset){
    }
 
    for(i = 0; i < numBlocks; i++){
-      tempInode = readInode(fd,i);
+      if ((tempInode = readInode(fd,i)).blockType < 0) {
+         return ERR_READDISK;
+      }
    
       if(tempInode.blockType == 2){
          if(!strcmp(filename, tempInode.name)){
@@ -762,6 +795,7 @@ int writeInode(fileDescriptor fd, char blockNum, Inode *in) {
 FileExtent readFileExtent(fileDescriptor fd, char blockNum) {
    FileExtent fe;
    if(readBlock(fd, blockNum, &fe)){
+   //inodeIdx = sb.rootInodeBlockNum;
       fe.blockType = -1;
    }
    return fe;
@@ -771,14 +805,14 @@ int writeFileExtent(fileDescriptor fd, char blockNum, FileExtent *fe) {
    return writeBlock(fd, blockNum, fe);
 }
 
-int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb) {
-   return writeBlock(fd, blockNum, fb);
-}
-
 FreeBlock readFreeBlock(fileDescriptor fd, char blockNum) {
    FreeBlock fb;
    if(readBlock(fd, blockNum, &fb) < 0){
       fb.blockType = -1;
    }
    return fb;
+}
+
+int writeFreeBlock(fileDescriptor fd, char blockNum, FreeBlock *fb) {
+   return writeBlock(fd, blockNum, fb);
 }
