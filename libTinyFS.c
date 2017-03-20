@@ -225,7 +225,9 @@ fileDescriptor tfs_openFile(char *name){
       if (nextFreeBlock == -1) {
          return ERR_NOSPACE;
       }
-      writeInode(fd,nextFreeBlock,&newInode);
+      if (writeInode(fd,nextFreeBlock,&newInode) < 0) {
+         return ERR_WRITEDISK;
+      }
        
 	}
    else{
@@ -238,7 +240,9 @@ fileDescriptor tfs_openFile(char *name){
       }
 
       newInode.lastAccess = cur;
-      writeInode(fd,i,&newInode);
+      if (writeInode(fd,i,&newInode) < 0) {
+         return ERR_WRITEDISK;
+      }
    }
 
    /* Creating the new DRT entry for the table */ 
@@ -389,7 +393,6 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
    curInode.fp = 0;
    curInode.lastAccess = time(NULL);
 
-   //writeInode(mountedFD, inodeIdx, &curInode);
    
    //Write buffer data
    if (size % 253 == 0) {
@@ -414,7 +417,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
          fb.blockType = 4;
          fb.magicNum = 0x44;
          fb.nextFreeBlock = sb.freeBlocksRoot; 
-         writeFreeBlock(mountedFD, curExtentIdx, &fb);
+         if (writeFreeBlock(mountedFD, curExtentIdx, &fb) < 0) {
+            return ERR_WRITEDISK;
+         }
          
          sb.freeBlocksRoot = curExtentIdx;
          if (writeSuperBlock(mountedFD, &sb) < 0) {
@@ -425,7 +430,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       }
 
       curInode.startOfFile = sb.freeBlocksRoot;
-      writeInode(mountedFD, inodeIdx, &curInode);
+      if (writeInode(mountedFD, inodeIdx, &curInode) < 0) {
+         return ERR_WRITEDISK;
+      }
    }
 
    //Write buffer data
@@ -451,7 +458,9 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size) {
       }
       
       nextFree = fb.nextFreeBlock;
-      writeFileExtent(mountedFD, sb.freeBlocksRoot, &newExtent);
+      if (writeFileExtent(mountedFD, sb.freeBlocksRoot, &newExtent) < 0) {
+         return ERR_WRITEDISK;
+      }
 
       sb.freeBlocksRoot = nextFree; 
       if (writeSuperBlock(mountedFD, &sb) < 0) {
@@ -528,7 +537,9 @@ int tfs_deleteFile(fileDescriptor FD) {
    fileExtentOffset = in.startOfFile;
    fb.nextFreeBlock = sb.freeBlocksRoot;
    sb.freeBlocksRoot = targetInodeOffset;
-   writeFreeBlock(mountedFD, sb.freeBlocksRoot, &fb);
+   if (writeFreeBlock(mountedFD, sb.freeBlocksRoot, &fb) < 0) {
+      return ERR_WRITEDISK;
+   }
    while(fileExtentOffset != -1) {
       if ((fe = readFileExtent(mountedFD, fileExtentOffset)).blockType < 0) {
          return ERR_READDISK;
@@ -536,7 +547,9 @@ int tfs_deleteFile(fileDescriptor FD) {
 
       fb.nextFreeBlock = sb.freeBlocksRoot;
       sb.freeBlocksRoot = fileExtentOffset;
-      writeFreeBlock(mountedFD, sb.freeBlocksRoot, &fb);
+      if (writeFreeBlock(mountedFD, sb.freeBlocksRoot, &fb) < 0) {
+         return ERR_WRITEDISK;
+      }
       fileExtentOffset = fe.nextBlock;
    }
    if (writeSuperBlock(mountedFD, &sb) < 0) {
@@ -639,7 +652,9 @@ int tfs_readByte(fileDescriptor FD, char *buffer) {
    /*the byte we want is in fe.data*/
    in.fp++;
    in.lastAccess = time(NULL);
-   writeInode(mountedFD, inodeBlockNum, &in);
+   if (writeInode(mountedFD, inodeBlockNum, &in) < 0) {
+      return ERR_WRITEDISK;
+   }
 
    memcpy(buffer, &(fe.data[byteOffset-currentByte]), 1); 
 
@@ -701,7 +716,9 @@ int tfs_seek(fileDescriptor FD, int offset){
             tempInode.fp = offset;
             cur = time(NULL);
             tempInode.lastAccess = cur;
-            writeInode(fd,i,&tempInode);
+            if (writeInode(fd,i,&tempInode) < 0) {
+               return ERR_WRITEDISK;
+            }
             break;
          }
       }
@@ -793,7 +810,7 @@ int writeInode(fileDescriptor fd, char blockNum, Inode *in) {
 
 FileExtent readFileExtent(fileDescriptor fd, char blockNum) {
    FileExtent fe;
-   if(readBlock(fd, blockNum, &fe)){
+   if(readBlock(fd, blockNum, &fe) < 0){
    //inodeIdx = sb.rootInodeBlockNum;
       fe.blockType = -1;
    }
